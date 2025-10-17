@@ -1,0 +1,224 @@
+export class FiltersPanel {
+    /**
+     * @param {HTMLElement} mountEl
+     * @param {{
+     *   categorical: Record<string,{label:string, options:string[]}>,
+     *   numeric: Record<string,{label:string,min:number,max:number,step:number,initialMin?:number,initialMax?:number}>,
+     *   onApply: (filters)=>void,
+     *   onReset?: ()=>void
+     * }} config
+     */
+    constructor(mountEl, config) {
+        this.mountEl = mountEl;
+        this.config = config;
+        this._render();
+    }
+
+    _render() {
+        const wrap = document.createElement('div');
+        wrap.className = 'filters card shadow-sm';
+        wrap.innerHTML = `
+      <div class="card-body">
+        <h5 class="card-title mb-3">Landslide Filters</h5>
+        <div class="accordion" id="filtersAccordion"></div>
+        <div class="d-flex gap-2 mt-3">
+          <button type="button" class="btn btn-primary" id="applyFiltersBtn">Apply Filters</button>
+          <button type="button" class="btn btn-outline-secondary" id="resetFiltersBtn">Reset</button>
+        </div>
+      </div>
+    `;
+
+        const acc = wrap.querySelector('#filtersAccordion');
+
+        // Categorical
+        if (this.config.categorical && Object.keys(this.config.categorical).length) {
+            const content = this._renderCategoricalSection();
+            acc.appendChild(this._accordionItem('cat', 'Categories', content));
+        }
+
+        // Numeric
+        if (this.config.numeric && Object.keys(this.config.numeric).length) {
+            const content = this._renderNumericSection();
+            acc.appendChild(this._accordionItem('num', 'Numerical Ranges', content));
+        }
+
+        this.mountEl.innerHTML = '';
+        this.mountEl.appendChild(wrap);
+
+        // Buttons
+        wrap.querySelector('#applyFiltersBtn').addEventListener('click', () => {
+            this.config.onApply?.(this.getFilters());
+        });
+        wrap.querySelector('#resetFiltersBtn').addEventListener('click', () => {
+            this.reset();
+            this.config.onReset?.();
+        });
+    }
+
+    _acordionIdCounter = 0; // optional: ensure unique ids
+
+    _acordionUid(prefix) {
+        this._acordionIdCounter = (this._acordionIdCounter || 0) + 1;
+        return `${prefix}-${this._acordionIdCounter}`;
+    }
+
+    _accordionItem(idBase, title, content) {
+        const headingId = this._acordionUid(`heading-${idBase}`);
+        const collapseId = this._acordionUid(`collapse-${idBase}`);
+
+        const item = document.createElement('div');
+        item.className = 'accordion-item';
+        item.innerHTML = `
+    <h2 class="accordion-header" id="${headingId}">
+      <button class="accordion-button" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#${collapseId}"
+              aria-expanded="true"
+              aria-controls="${collapseId}">
+        ${title}
+      </button>
+    </h2>
+    <div id="${collapseId}" class="accordion-collapse collapse show" aria-labelledby="${headingId}">
+      <div class="accordion-body"></div>
+    </div>
+  `;
+        item.querySelector('.accordion-body').appendChild(content);
+        return item;
+    }
+
+    _renderCategoricalSection() {
+        const section = document.createElement('div');
+        section.className = 'vstack gap-3';
+
+        for (const [key, { label, options }] of Object.entries(this.config.categorical)) {
+            const group = document.createElement('div');
+            group.className = 'mb-1';
+            group.dataset.key = key;
+            group.innerHTML = `<label class="form-label fw-semibold">${label}</label>`;
+
+            const grid = document.createElement('div');
+            grid.className = 'row row-cols-2 g-1';
+            options.forEach((opt, i) => {
+                const col = document.createElement('div');
+                col.className = 'col';
+                const id = `${key}__${i}`;
+                col.innerHTML = `
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="${opt}" id="${id}">
+            <label class="form-check-label" for="${id}">${opt}</label>
+          </div>
+        `;
+                grid.appendChild(col);
+            });
+
+            group.appendChild(grid);
+            section.appendChild(group);
+        }
+        return section;
+    }
+
+    _renderNumericSection() {
+        const section = document.createElement('div');
+        section.className = 'vstack gap-3';
+        this._noUi = this._noUi || {};
+
+        for (const [key, cfg] of Object.entries(this.config.numeric)) {
+            const { label, min, max, step, initialMin = min, initialMax = max } = cfg;
+
+            const group = document.createElement('div');
+            group.className = 'mb-3';
+            group.dataset.key = key;
+            group.innerHTML = `
+      <label class="form-label fw-semibold">${label}</label>
+      <div id="ns_${key}" class="mb-2 slider-round"></div>
+
+      <div class="row gx-2">
+        <div class="col">
+          <input type="number" class="form-control form-control-sm"
+                 placeholder="Min" step="${step}" min="${min}" max="${max}">
+        </div>
+        <div class="col">
+          <input type="number" class="form-control form-control-sm"
+                 placeholder="Max" step="${step}" min="${min}" max="${max}">
+        </div>
+      </div>
+    `;
+            section.appendChild(group);
+
+            const sliderEl = group.querySelector(`#ns_${key}`);
+            const numInputs = group.querySelectorAll('input[type="number"]');
+            const numMin = numInputs[0];
+            const numMax = numInputs[1];
+
+            // === create the slider ===
+            (noUiSlider || window.noUiSlider).create(sliderEl, {
+                start: [initialMin, initialMax],
+                connect: true,
+                range: { min, max },
+                step,
+                format: {
+                    to: v => v,
+                    from: v => parseFloat(v)
+                }
+            });
+
+            const decimals = step < 1 ? (String(step).split('.')[1]?.length || 1) : 0;
+            const slider = sliderEl.noUiSlider;
+
+            // update number boxes on slider move
+            slider.on('update', (vals) => {
+                const [lo, hi] = vals.map(parseFloat);
+                numMin.value = lo.toFixed(decimals);
+                numMax.value = hi.toFixed(decimals);
+            });
+
+            // update slider when typing in boxes
+            const syncFromBoxes = () => {
+                const lo = parseFloat(numMin.value);
+                const hi = parseFloat(numMax.value);
+                if (!isNaN(lo) && !isNaN(hi)) slider.set([lo, hi]);
+            };
+            numMin.addEventListener('change', syncFromBoxes);
+            numMax.addEventListener('change', syncFromBoxes);
+
+            // stash
+            this._noUi[key] = { slider, cfg, numMin, numMax };
+        }
+
+        return section;
+    }
+
+    // ---- Public API ----
+
+    getFilters() {
+        const out = { categorical: {}, numeric: {} };
+
+        // categorical
+        for (const [key] of Object.entries(this.config.categorical || {})) {
+            const group = this.mountEl.querySelector(`.accordion-body [data-key="${key}"]`);
+            if (!group) continue;
+            const vals = Array.from(group.querySelectorAll('.form-check-input:checked')).map(i => i.value);
+            if (vals.length) out.categorical[key] = vals;
+        }
+
+        for (const [key, obj] of Object.entries(this._noUi || {})) {
+            const { slider, cfg } = obj;
+            const [lo, hi] = slider.get().map(parseFloat);
+            const isFull = lo <= cfg.min && hi >= cfg.max;
+            if (!isFull) out.numeric[key] = { min: lo, max: hi };
+        }
+
+        return out;
+    }
+
+    reset() {
+        // categorical
+        this.mountEl.querySelectorAll('.form-check-input').forEach(cb => (cb.checked = false));
+
+        // numeric -> back to full extent
+        for (const [key, obj] of Object.entries(this._noUi || {})) {
+            const { slider, cfg } = obj;
+            slider.set([cfg.min, cfg.max]);
+        }
+    }
+}

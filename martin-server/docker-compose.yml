@@ -1,0 +1,20 @@
+services:
+  martin:
+    image: ghcr.io/maplibre/martin:latest
+    container_name: martin
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Hostname must be the PostGIS container name that’s on pgnet (often "postgis")
+      DATABASE_URL: postgres://postgres:pass@postgis/gis
+      RUST_LOG: info
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+    command: ["--config", "/config/config.yaml",  "--webui", "enable-for-all"]
+    networks:
+      - pgnet
+
+networks:
+  pgnet:
+    external: true

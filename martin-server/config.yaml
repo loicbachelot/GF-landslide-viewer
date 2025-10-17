@@ -1,0 +1,23 @@
+listen_addresses: "0.0.0.0:3000"
+web_ui: enable-for-all
+
+postgres:
+  connection_string: ${DATABASE_URL}   # already set in your container env
+  # Turn off auto-publish so only the sources below appear
+  auto_publish:
+    tables: false
+    functions: false
+
+  # Publish your two function sources
+  functions:
+    ls_polygons_cluster_filtered:
+      schema: landslides
+      function: ls_polygons_cluster_q
+      minzoom: 0
+      maxzoom: 14
+
+    ls_polygons_raw_polygons_filtered:
+      schema: landslides
+      function: ls_polygons_raw_polygons_q
+      minzoom: 8
+      maxzoom: 22
