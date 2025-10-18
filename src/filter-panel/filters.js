@@ -104,6 +104,11 @@ export function applyLandslideFiltersFromObject(map, filtersObj) {
         `${MARTIN_URL}/${sourceNames.polysClusterFn}/{z}/{x}/{y}?${qp}`);
     setSourceTilesSafe(map, 'polys_raw',
         `${MARTIN_URL}/${sourceNames.polysTable}/{z}/{x}/{y}?${qp}`);
+    setSourceTilesSafe(map, 'pointsCluster',
+        `${MARTIN_URL}/${sourceNames.pointsClusterFn}/{z}/{x}/{y}?${qp}`);
+    setSourceTilesSafe(map, 'points_raw',
+        `${MARTIN_URL}/${sourceNames.pointsTable}/{z}/{x}/{y}?${qp}`);
+
 
     let done = false;
     const finish = () => { if (!done) { done = true; hideMapLoading(); } };
@@ -189,17 +194,4 @@ async function setSourceTilesSafe(map, sourceId, url) {
         map.removeSource(sourceId);
         map.addSource(sourceId, { ...def, tiles: [url] });
     }
-}
-
-export function applyLandslideFilters(map) {
-    const qp = buildFilterQuery();
-    setSourceTilesSafe(map, 'polys_cluster',
-        `${MARTIN_URL}/${sourceNames.polysClusterFn}/{z}/{x}/{y}?${qp}`);
-    setSourceTilesSafe(map, 'polys_raw',
-        `${MARTIN_URL}/${sourceNames.polysTable}/{z}/{x}/{y}?${qp}`);
-
-    // persist in URL (optional)
-    const url = new URL(window.location.href);
-    url.search = '?' + qp;
-    history.replaceState({}, '', url.toString());
 }

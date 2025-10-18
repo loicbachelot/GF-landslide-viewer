@@ -8,8 +8,10 @@ export const INITIAL_VIEW = { center: [-123.0, 44.0], zoom: 6 };
 export const sourceNames = {
     // clusters (functions)
     polysClusterFn:  'ls_polygons_cluster_filtered',
+    pointsClusterFn:  'ls_points_cluster_filtered',
     // raw (tables/views)
-    polysTable:      'ls_polygons_raw_polygons_filtered'
+    polysTable:      'ls_polygons_raw_polygons_filtered',
+    pointsTable:     'ls_points_raw_points_filtered',
 };
 
 // Vector layer ids *inside* the tiles (MVT layer names)
@@ -17,6 +19,10 @@ export const sourceLayers = {
     polys: {
         cluster: 'ls_polygons_cluster',   // <-- MVT layer id
         raw:     'ls_polygons_raw'        // <-- MVT layer id
+    },
+    points: {
+        cluster: 'ls_points_cluster',
+        raw: 'ls_points_raw'
     }
 };
 
@@ -28,7 +34,13 @@ export const styleIds = {
     polysClusterCount: 'polys_cluster-count',
     polysFill: 'polys_raw-fill',
     polysLine: 'polys_raw-line',
+    // point layers
+    pointsCluster:      'points-cluster',
+    pointsClusterCount: 'points-cluster-count',
+    pointsCircle:       'points-circle',
+    pointsLabel:        'points-label'
 };
 
 // Zoom thresholds (clusters < Z, raw ≥ Z)
 export const Z_RAW_POLYS  = 9;
+export const Z_RAW_POINTS = 9;

@@ -3,7 +3,7 @@ import './filter-panel/filters-panel.css';
 import { startMapLibre } from './maplibre/viewer.js';
 import { FiltersPanel } from './filter-panel/FiltersPanel.js';
 import { applyLandslideFiltersFromObject } from './filter-panel/filters.js';
-import './filter-panel/landslide-filters-config.js'; // window.LandslideFilterConfig
+import './filter-panel/landslide-filters-config.js';
 
 
 // ---- defaults (swap with real data bounds when ready) ----

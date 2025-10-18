@@ -8,7 +8,7 @@ postgres:
     tables: false
     functions: false
 
-  # Publish your two function sources
+  # Publish your 4 function sources
   functions:
     ls_polygons_cluster_filtered:
       schema: landslides
@@ -19,5 +19,17 @@ postgres:
     ls_polygons_raw_polygons_filtered:
       schema: landslides
       function: ls_polygons_raw_polygons_q
+      minzoom: 8
+      maxzoom: 22
+
+    ls_points_cluster_filtered:
+      schema: landslides
+      function: ls_points_cluster_q
+      minzoom: 0
+      maxzoom: 14
+
+    ls_points_raw_points_filtered:
+      schema: landslides
+      function: ls_points_raw_points_q
       minzoom: 8
       maxzoom: 22

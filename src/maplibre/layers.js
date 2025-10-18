@@ -1,6 +1,6 @@
 import {
     MARTIN_URL, sourceNames, sourceLayers, styleIds,
-    Z_RAW_POLYS
+    Z_RAW_POLYS, Z_RAW_POINTS
 } from './config.js';
 
 export function addVectorSources(style) {
@@ -15,6 +15,19 @@ export function addVectorSources(style) {
         type: 'vector',
         tiles: [`${MARTIN_URL}/${sourceNames.polysTable}/{z}/{x}/{y}`],
         minzoom: Z_RAW_POLYS, maxzoom: 22
+    };
+
+    // POINTS CLUSTERS (function)
+    style.sources.pointsCluster = {
+        type: 'vector',
+        tiles: [`${MARTIN_URL}/${sourceNames.pointsClusterFn}/{z}/{x}/{y}`],
+        minzoom: 0, maxzoom: Z_RAW_POINTS
+    };
+    // RAW POINTS (table)
+    style.sources.points_raw = {
+        type: 'vector',
+        tiles: [`${MARTIN_URL}/${sourceNames.pointsTable}/{z}/{x}/{y}`],
+        minzoom: Z_RAW_POINTS, maxzoom: 22
     };
 }
 
@@ -92,4 +105,87 @@ export function addPolygonLayers(style) {
             paint: { 'line-color': '#124', 'line-width': 1 }
         }
     );
+}
+
+export function addPointLayers(style) {
+    // Same palette as polygons
+    const BLUE = '#1e90ff';
+    const BLUE_DARK = '#094a8f';
+
+    // Safe numeric getter for point cluster counts
+    const PT_COUNT = ['to-number', ['coalesce', ['get','pt_count'], 0]];
+
+    // Abbreviated labels — identical logic to polygons
+    const abbrev = [
+        'case',
+        ['>=', PT_COUNT, 1000000],
+        ['concat', ['to-string', ['round', ['/', PT_COUNT, 1000000]]], 'M'],
+        ['>=', PT_COUNT, 1000],
+        ['concat', ['to-string', ['round', ['/', PT_COUNT, 1000]]], 'k'],
+        ['to-string', PT_COUNT]
+    ];
+
+    // Circle radius — identical logic to polygons
+    const radius = [
+        'min',
+        ['max', ['*', ['sqrt', ['max', 1, PT_COUNT]], 0.75], 6],
+        26
+    ];
+
+    // POINT CLUSTERS (low zooms) — same visuals as polygon clusters
+    style.layers.push({
+        id: styleIds.pointsCluster,
+        type: 'circle',
+        source: 'pointsCluster',
+        'source-layer': sourceLayers.points.cluster, // "ls_points_cluster"
+        minzoom: 0, maxzoom: Z_RAW_POINTS,
+        paint: {
+            'circle-radius': radius,
+            'circle-color': BLUE,
+            'circle-opacity': 0.9,
+            'circle-stroke-color': BLUE_DARK,
+            'circle-stroke-width': 1,
+            'circle-blur': 0.2
+        }
+    });
+
+    style.layers.push({
+        id: styleIds.pointsClusterCount,
+        type: 'symbol',
+        source: 'pointsCluster',
+        'source-layer': sourceLayers.points.cluster,
+        minzoom: 0, maxzoom: Z_RAW_POINTS,
+        layout: {
+            'text-field': abbrev,
+            'text-font': ['Open Sans Regular','Arial Unicode MS Regular'],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 0,10, 6,12, 10,14],
+            'text-allow-overlap': false
+        },
+        paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': BLUE_DARK,
+            'text-halo-width': 1.2
+        }
+    });
+
+    // RAW POINTS (high zooms) — neutral dots so fills/lines still read
+    style.layers.push({
+        id: styleIds.pointsCircle,
+        type: 'circle',
+        source: 'points_raw',
+        'source-layer': sourceLayers.points.raw, // "ls_points"
+        minzoom: Z_RAW_POINTS,
+        paint: {
+            'circle-radius': [
+                'interpolate', ['linear'], ['zoom'],
+                Z_RAW_POINTS, 2.5,
+                Z_RAW_POINTS + 2, 3.5,
+                22, 5
+            ],
+            'circle-color': '#236',
+            'circle-opacity': 0.85,
+            'circle-stroke-color': '#124',
+            'circle-stroke-width': 0.75
+        }
+    });
 }
