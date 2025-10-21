@@ -128,3 +128,7 @@ body.is-resizing{ user-select: none; cursor: col-resize; }
 }
 .text-success{ color: #198754; }
 @keyframes spin{ to{ transform: rotate(360deg); } }
+
+.maplibregl-ctrl-group label {
+    user-select: none;
+}

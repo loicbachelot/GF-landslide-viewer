@@ -147,11 +147,6 @@ function initSplitter(map) {
 // ---- boot ----
 const map = startMapLibre();
 map.once('load', () => {
-    // Filters toggle only (panel stays open always)
-    document.getElementById('filters-toggle')?.addEventListener('click', () => {
-        setFiltersCollapsed(!document.body.classList.contains('filters-collapsed'));
-    });
-
     // Collapse filters when a landslide is selected
     window.addEventListener('ls:selected', () => setFiltersCollapsed(true));
 

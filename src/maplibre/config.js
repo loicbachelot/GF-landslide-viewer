@@ -44,3 +44,7 @@ export const styleIds = {
 // Zoom thresholds (clusters < Z, raw ≥ Z)
 export const Z_RAW_POLYS  = 9;
 export const Z_RAW_POINTS = 9;
+
+export const CFM_URLS = [
+    'https://raw.githubusercontent.com/cascadiaquakes/CRESCENT-CFM/main/crescent_cfm_files/crescent_cfm_crustal_traces.geojson',
+];
