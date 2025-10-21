@@ -5,6 +5,9 @@ import { INITIAL_VIEW, styleIds, Z_RAW_POLYS, Z_RAW_POINTS } from './config.js';
 import { addBasemap } from './baselayer.js';
 import { addVectorSources, addPolygonLayers, addPointLayers } from './layers.js';
 
+import { showSelectedDetailsFromFeatureProps } from '../summary/summary.js';
+
+
 function baseStyle() {
     const style = {
         version: 8,
@@ -65,6 +68,7 @@ export function startMapLibre() {
     map.on('click', styleIds.polysFill, e => {
         const f = e.features?.[0]; if (!f) return;
         new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+        showSelectedDetailsFromFeatureProps(f.properties || {});
     });
     map.on('mouseenter', styleIds.polysFill, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', styleIds.polysFill, () => (map.getCanvas().style.cursor = ''));
@@ -86,6 +90,7 @@ export function startMapLibre() {
     map.on('click', styleIds.pointsCircle, e => {
         const f = e.features?.[0]; if (!f) return;
         new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+        showSelectedDetailsFromFeatureProps(f.properties || {});
     });
     map.on('mouseenter', styleIds.pointsCircle, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', styleIds.pointsCircle, () => (map.getCanvas().style.cursor = ''));

@@ -26,7 +26,27 @@
 <!-- Split layout: filters | gutter | map -->
 <main class="app-main">
     <aside id="filters-wrapper">
+        <div class="lp-header">
+            <div class="lp-title">Filters</div>
+            <button id="lp-toggle" class="btn btn-light btn-sm"
+                    title="Collapse/expand"
+                    aria-expanded="true"
+                    aria-controls="filters-panel">
+                <span class="chev">‹</span>
+            </button>
+        </div>
         <div id="filters-panel"></div>
+        <section id="ls-details" class="card card-body ls-details">
+            <div class="card-title">Selected landslide</div>
+
+            <div id="selected-empty" class="text-muted">
+                Click a landslide on the map to see details here.
+            </div>
+
+            <table id="selected-table" class="table table-sm table-borderless d-none">
+                <tbody id="selected-tbody"></tbody>
+            </table>
+        </section>
     </aside>
 
     <div id="split-gutter" role="separator" aria-label="Resize panels" tabindex="0"></div>

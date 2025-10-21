@@ -4,6 +4,7 @@ import { startMapLibre } from './maplibre/viewer.js';
 import { FiltersPanel } from './filter-panel/FiltersPanel.js';
 import { applyLandslideFiltersFromObject } from './filter-panel/filters.js';
 import './filter-panel/landslide-filters-config.js';
+import { initSummaryPane} from './summary/summary.js';
 
 
 // ---- defaults (swap with real data bounds when ready) ----
@@ -13,6 +14,17 @@ const DEFAULT_NUMERIC_BOUNDS = {
     psa03: { min: 0,   max: 300, step: 0.1 },
     mmi:   { min: 1,   max: 10,  step: 0.1 }
 };
+
+function setSidebarCollapsed(on) {
+    document.body.classList.toggle('sidebar-collapsed', !!on);
+    document.getElementById('lp-toggle')?.setAttribute('aria-expanded', (!on).toString());
+    try { map.resize(); } catch {}
+}
+document.getElementById('lp-toggle')?.addEventListener('click', () => {
+    setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+});
+// auto-collapse when a landslide is selected
+window.addEventListener('ls:selected', () => setSidebarCollapsed(true));
 
 // Adapt LandslideFilterConfig -> FiltersPanel props
 function adaptPanelConfig(lfc) {
@@ -63,6 +75,7 @@ function initFiltersPanel(map) {
             const url = new URL(window.location.href);
             url.search = '';
             history.replaceState({}, '', url.toString());
+            renderFilterChips();
         }
     });
 }
@@ -153,4 +166,5 @@ const map = startMapLibre(); // returns Map
 map.once('load', () => {
     initFiltersPanel(map);
     initSplitter(map);
+    initSummaryPane(map);
 });

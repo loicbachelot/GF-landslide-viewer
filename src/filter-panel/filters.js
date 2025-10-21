@@ -195,3 +195,42 @@ async function setSourceTilesSafe(map, sourceId, url) {
         map.addSource(sourceId, { ...def, tiles: [url] });
     }
 }
+
+export function getCurrentFiltersForSummary() {
+    const cfg = safeCfg();
+
+    // categorical
+    const c = cfg.categorical || {};
+    const materials   = collectCategorical(c.material,   getSelectedValues(c.material?.elementId));
+    const movements   = collectCategorical(c.movement,   getSelectedValues(c.movement?.elementId));
+    const confidences = collectCategorical(c.confidence, getSelectedValues(c.confidence?.elementId));
+
+    // numeric (min/max from inputs; include tolerance for display if you want)
+    const n = cfg.numericRanges || {};
+    const read = (key, groupCfg) => {
+        if (!groupCfg) return null;
+        const r = getRange(groupCfg.elementId);
+        if (!r) return null;
+        const [minV, maxV] = r;
+        return { min: minV, max: maxV, tol: groupCfg.tolerance ?? null };
+    };
+
+    return {
+        categorical: { material: materials, movement: movements, confidence: confidences },
+        numeric: {
+            pga:   read('pga',   n.pga),
+            pgv:   read('pgv',   n.pgv),
+            psa03: read('psa03', n.psa03),
+            mmi:   read('mmi',   n.mmi)
+        }
+    };
+}
+
+export function buildFilterSearchParams(extra = {}) {
+    const params = new URLSearchParams(buildFilterQuery());  // uses your existing builder
+    for (const [k, v] of Object.entries(extra)) {
+        if (v == null) continue;
+        params.set(k, Array.isArray(v) ? v.join(',') : String(v));
+    }
+    return params;
+}
