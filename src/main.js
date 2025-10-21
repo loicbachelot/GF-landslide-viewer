@@ -4,10 +4,9 @@ import { startMapLibre } from './maplibre/viewer.js';
 import { FiltersPanel } from './filter-panel/FiltersPanel.js';
 import { applyLandslideFiltersFromObject } from './filter-panel/filters.js';
 import './filter-panel/landslide-filters-config.js';
-import { initSummaryPane} from './summary/summary.js';
+import { initSummaryPane } from './summary/summary.js';
 
-
-// ---- defaults (swap with real data bounds when ready) ----
+// ---- defaults ----
 const DEFAULT_NUMERIC_BOUNDS = {
     pga:   { min: 0,   max: 150, step: 0.1 },
     pgv:   { min: 0,   max: 150, step: 0.1 },
@@ -15,18 +14,7 @@ const DEFAULT_NUMERIC_BOUNDS = {
     mmi:   { min: 1,   max: 10,  step: 0.1 }
 };
 
-function setSidebarCollapsed(on) {
-    document.body.classList.toggle('sidebar-collapsed', !!on);
-    document.getElementById('lp-toggle')?.setAttribute('aria-expanded', (!on).toString());
-    try { map.resize(); } catch {}
-}
-document.getElementById('lp-toggle')?.addEventListener('click', () => {
-    setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed'));
-});
-// auto-collapse when a landslide is selected
-window.addEventListener('ls:selected', () => setSidebarCollapsed(true));
 
-// Adapt LandslideFilterConfig -> FiltersPanel props
 function adaptPanelConfig(lfc) {
     return {
         categorical: {
@@ -43,7 +31,6 @@ function adaptPanelConfig(lfc) {
     };
 }
 
-// Convert panel filters -> server query shape (adds tolerances from LFC)
 function toMartinFilters(panelFilters, lfc) {
     return {
         categorical: {
@@ -60,36 +47,39 @@ function toMartinFilters(panelFilters, lfc) {
     };
 }
 
+let filtersPanel;
+
 function initFiltersPanel(map) {
     const lfc = window.LandslideFilterConfig;
     const cfg = adaptPanelConfig(lfc);
 
-    new FiltersPanel(document.getElementById('filters-panel'), {
+    filtersPanel = new FiltersPanel(document.getElementById('filters-panel'), {
         categorical: cfg.categorical,
         numeric: cfg.numeric,
         onApply: (filters) => {
             applyLandslideFiltersFromObject(map, toMartinFilters(filters, lfc));
         },
         onReset: () => {
-            applyLandslideFiltersFromObject(map, { categorical: {}, numeric: {} });
-            const url = new URL(window.location.href);
-            url.search = '';
-            history.replaceState({}, '', url.toString());
-            renderFilterChips();
+            // Any additional reset-side effects here (map refresh already in your code)
         }
     });
 }
 
+// Close accordions on landslide select:
+window.addEventListener('ls:selected', () => {
+    filtersPanel?.collapseAll();
+});
+
 function initSplitter(map) {
-    const SIDEBAR_KEY = 'ls.sidebar.w';
+    const WIDTH_KEY = 'ls.lp.w';
     const root = document.documentElement;
     const gutter = document.getElementById('split-gutter');
 
     const css = getComputedStyle(root);
-    const sidebarMin = parseFloat(css.getPropertyValue('--sidebar-min')) || 240;
+    const lpMin = parseFloat(css.getPropertyValue('--lp-min')) || 240;
 
-    const getSidebarMaxPx = () => {
-        const v = css.getPropertyValue('--sidebar-max').trim();
+    const getLpMaxPx = () => {
+        const v = css.getPropertyValue('--lp-max').trim();
         if (v.endsWith('vw')) return (parseFloat(v) / 100) * window.innerWidth;
         if (v.endsWith('px')) return parseFloat(v);
         return 0.6 * window.innerWidth;
@@ -97,10 +87,10 @@ function initSplitter(map) {
 
     // restore saved width
     {
-        const saved = parseFloat(localStorage.getItem(SIDEBAR_KEY));
+        const saved = parseFloat(localStorage.getItem(WIDTH_KEY));
         if (!isNaN(saved)) {
-            const clamped = Math.min(Math.max(saved, sidebarMin), getSidebarMaxPx());
-            root.style.setProperty('--sidebar-w', `${clamped}px`);
+            const clamped = Math.min(Math.max(saved, lpMin), getLpMaxPx());
+            root.style.setProperty('--lp-w', `${clamped}px`);
         }
     }
 
@@ -108,11 +98,11 @@ function initSplitter(map) {
     let lastWidthPx = null;
     let rafId = null;
 
-    const setSidebarWidth = (px) => {
-        const clamped = Math.min(Math.max(px, sidebarMin), getSidebarMaxPx());
+    const setLpWidth = (px) => {
+        const clamped = Math.min(Math.max(px, lpMin), getLpMaxPx());
         if (clamped === lastWidthPx) return;
         lastWidthPx = clamped;
-        root.style.setProperty('--sidebar-w', `${clamped}px`);
+        root.style.setProperty('--lp-w', `${clamped}px`);
         if (!rafId) {
             rafId = requestAnimationFrame(() => {
                 rafId = null;
@@ -123,17 +113,12 @@ function initSplitter(map) {
 
     const pointerX = (e) => (e.touches?.length ? e.touches[0].clientX : e.clientX);
 
-    const onMove = (e) => {
-        if (!isDragging) return;
-        setSidebarWidth(pointerX(e));
-        e.preventDefault();
-    };
-
-    const onEnd = () => {
+    const onMove = (e) => { if (isDragging) { setLpWidth(pointerX(e)); e.preventDefault(); } };
+    const onEnd  = () => {
         if (!isDragging) return;
         isDragging = false;
         document.body.classList.remove('is-resizing');
-        if (lastWidthPx != null) localStorage.setItem(SIDEBAR_KEY, String(lastWidthPx));
+        if (lastWidthPx != null) localStorage.setItem(WIDTH_KEY, String(lastWidthPx));
         try { map.resize(); } catch {}
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onEnd);
@@ -141,30 +126,36 @@ function initSplitter(map) {
         window.removeEventListener('touchend', onEnd);
     };
 
-    gutter.addEventListener('mousedown', () => {
+    const startDrag = () => {
         isDragging = true;
         document.body.classList.add('is-resizing');
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onEnd);
-    });
-
-    gutter.addEventListener('touchstart', () => {
-        isDragging = true;
-        document.body.classList.add('is-resizing');
         window.addEventListener('touchmove', onMove, { passive: false });
         window.addEventListener('touchend', onEnd);
-    });
+    };
+
+    gutter.addEventListener('mousedown', startDrag);
+    gutter.addEventListener('touchstart', startDrag, { passive: false });
 
     window.addEventListener('resize', () => {
-        const current = parseFloat(getComputedStyle(root).getPropertyValue('--sidebar-w')) || 0;
-        setSidebarWidth(Math.min(current, getSidebarMaxPx()));
+        const current = parseFloat(getComputedStyle(root).getPropertyValue('--lp-w')) || 0;
+        setLpWidth(Math.min(current, getLpMaxPx()));
     });
 }
 
 // ---- boot ----
-const map = startMapLibre(); // returns Map
+const map = startMapLibre();
 map.once('load', () => {
+    // Filters toggle only (panel stays open always)
+    document.getElementById('filters-toggle')?.addEventListener('click', () => {
+        setFiltersCollapsed(!document.body.classList.contains('filters-collapsed'));
+    });
+
+    // Collapse filters when a landslide is selected
+    window.addEventListener('ls:selected', () => setFiltersCollapsed(true));
+
     initFiltersPanel(map);
     initSplitter(map);
-    initSummaryPane(map);
+    if (typeof initSummaryPane === 'function') initSummaryPane(map);
 });

@@ -11,6 +11,7 @@ export class FiltersPanel {
     constructor(mountEl, config) {
         this.mountEl = mountEl;
         this.config = config;
+        this._sections = {}; // <-- store accordion section refs
         this._render();
     }
 
@@ -49,13 +50,15 @@ export class FiltersPanel {
         wrap.querySelector('#applyFiltersBtn').addEventListener('click', () => {
             this.config.onApply?.(this.getFilters());
         });
+
         wrap.querySelector('#resetFiltersBtn').addEventListener('click', () => {
             this.reset();
+            this.expandAll();            // <--- OPEN all accordions on Reset
             this.config.onReset?.();
         });
     }
 
-    _acordionIdCounter = 0; // optional: ensure unique ids
+    _acordionIdCounter = 0;
 
     _acordionUid(prefix) {
         this._acordionIdCounter = (this._acordionIdCounter || 0) + 1;
@@ -69,20 +72,34 @@ export class FiltersPanel {
         const item = document.createElement('div');
         item.className = 'accordion-item';
         item.innerHTML = `
-    <h2 class="accordion-header" id="${headingId}">
-      <button class="accordion-button" type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#${collapseId}"
-              aria-expanded="true"
-              aria-controls="${collapseId}">
-        ${title}
-      </button>
-    </h2>
-    <div id="${collapseId}" class="accordion-collapse collapse show" aria-labelledby="${headingId}">
-      <div class="accordion-body"></div>
-    </div>
-  `;
-        item.querySelector('.accordion-body').appendChild(content);
+      <h2 class="accordion-header" id="${headingId}">
+        <button class="accordion-button" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#${collapseId}"
+                aria-expanded="true"
+                aria-controls="${collapseId}">
+          ${title}
+        </button>
+      </h2>
+      <div id="${collapseId}" class="accordion-collapse collapse show" aria-labelledby="${headingId}">
+        <div class="accordion-body"></div>
+      </div>
+    `;
+
+        const body = item.querySelector('.accordion-body');
+        body.appendChild(content);
+
+        // Keep references to control later
+        const collapseEl = item.querySelector(`#${collapseId}`);
+        const buttonEl = item.querySelector('.accordion-button');
+
+        // If Bootstrap JS is present, create a Collapse instance (no auto toggle)
+        const bs = (window.bootstrap && window.bootstrap.Collapse)
+            ? new window.bootstrap.Collapse(collapseEl, { toggle: false })
+            : null;
+
+        this._sections[idBase] = { item, buttonEl, collapseEl, bs };
+
         return item;
     }
 
@@ -129,20 +146,19 @@ export class FiltersPanel {
             group.className = 'mb-3';
             group.dataset.key = key;
             group.innerHTML = `
-      <label class="form-label fw-semibold">${label}</label>
-      <div id="ns_${key}" class="mb-2 slider-round"></div>
-
-      <div class="row gx-2">
-        <div class="col">
-          <input type="number" class="form-control form-control-sm"
-                 placeholder="Min" step="${step}" min="${min}" max="${max}">
+        <label class="form-label fw-semibold">${label}</label>
+        <div id="ns_${key}" class="mb-2 slider-round"></div>
+        <div class="row gx-2">
+          <div class="col">
+            <input type="number" class="form-control form-control-sm"
+                   placeholder="Min" step="${step}" min="${min}" max="${max}">
+          </div>
+          <div class="col">
+            <input type="number" class="form-control form-control-sm"
+                   placeholder="Max" step="${step}" min="${min}" max="${max}">
+          </div>
         </div>
-        <div class="col">
-          <input type="number" class="form-control form-control-sm"
-                 placeholder="Max" step="${step}" min="${min}" max="${max}">
-        </div>
-      </div>
-    `;
+      `;
             section.appendChild(group);
 
             const sliderEl = group.querySelector(`#ns_${key}`);
@@ -150,29 +166,23 @@ export class FiltersPanel {
             const numMin = numInputs[0];
             const numMax = numInputs[1];
 
-            // === create the slider ===
             (noUiSlider || window.noUiSlider).create(sliderEl, {
                 start: [initialMin, initialMax],
                 connect: true,
                 range: { min, max },
                 step,
-                format: {
-                    to: v => v,
-                    from: v => parseFloat(v)
-                }
+                format: { to: v => v, from: v => parseFloat(v) }
             });
 
             const decimals = step < 1 ? (String(step).split('.')[1]?.length || 1) : 0;
             const slider = sliderEl.noUiSlider;
 
-            // update number boxes on slider move
             slider.on('update', (vals) => {
                 const [lo, hi] = vals.map(parseFloat);
                 numMin.value = lo.toFixed(decimals);
                 numMax.value = hi.toFixed(decimals);
             });
 
-            // update slider when typing in boxes
             const syncFromBoxes = () => {
                 const lo = parseFloat(numMin.value);
                 const hi = parseFloat(numMax.value);
@@ -181,7 +191,6 @@ export class FiltersPanel {
             numMin.addEventListener('change', syncFromBoxes);
             numMax.addEventListener('change', syncFromBoxes);
 
-            // stash
             this._noUi[key] = { slider, cfg, numMin, numMax };
         }
 
@@ -190,10 +199,55 @@ export class FiltersPanel {
 
     // ---- Public API ----
 
+    /** Collapse all accordion sections */
+    collapseAll() {
+        for (const sec of Object.values(this._sections)) {
+            if (sec.bs) {
+                sec.bs.hide();
+            } else {
+                sec.collapseEl.classList.remove('show');
+                sec.buttonEl.setAttribute('aria-expanded', 'false');
+            }
+        }
+    }
+
+    /** Expand all accordion sections */
+    expandAll() {
+        for (const sec of Object.values(this._sections)) {
+            if (sec.bs) {
+                sec.bs.show();
+            } else {
+                sec.collapseEl.classList.add('show');
+                sec.buttonEl.setAttribute('aria-expanded', 'true');
+            }
+        }
+    }
+
+    /** Close a specific section by key ('cat' or 'num') */
+    closeSection(key) {
+        const sec = this._sections[key];
+        if (!sec) return;
+        if (sec.bs) sec.bs.hide();
+        else {
+            sec.collapseEl.classList.remove('show');
+            sec.buttonEl.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    /** Open a specific section by key ('cat' or 'num') */
+    openSection(key) {
+        const sec = this._sections[key];
+        if (!sec) return;
+        if (sec.bs) sec.bs.show();
+        else {
+            sec.collapseEl.classList.add('show');
+            sec.buttonEl.setAttribute('aria-expanded', 'true');
+        }
+    }
+
     getFilters() {
         const out = { categorical: {}, numeric: {} };
 
-        // categorical
         for (const [key] of Object.entries(this.config.categorical || {})) {
             const group = this.mountEl.querySelector(`.accordion-body [data-key="${key}"]`);
             if (!group) continue;
@@ -214,7 +268,6 @@ export class FiltersPanel {
     reset() {
         // categorical
         this.mountEl.querySelectorAll('.form-check-input').forEach(cb => (cb.checked = false));
-
         // numeric -> back to full extent
         for (const [key, obj] of Object.entries(this._noUi || {})) {
             const { slider, cfg } = obj;

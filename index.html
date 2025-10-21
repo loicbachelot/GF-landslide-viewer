@@ -2,55 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <title>Cascadia Landslide Viewer</title>
-
-    <!-- Bootstrap CSS -->
-    <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    <title>Cascadia Landslide Viewer</title> <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/npm/nouislider@15.8.1/dist/nouislider.min.css" rel="stylesheet"/>
-
 </head>
-<body>
-<!-- Top banner -->
+<body> <!-- Top banner -->
 <header class="app-banner">
     <div class="app-banner__title">Cascadia Landslide Viewer</div>
     <div class="app-banner__right">v1 • demo</div>
-</header>
-
-<!-- Split layout: filters | gutter | map -->
+</header> <!-- Split layout: filters | gutter | map -->
 <main class="app-main">
-    <aside id="filters-wrapper">
-        <div class="lp-header">
-            <div class="lp-title">Filters</div>
-            <button id="lp-toggle" class="btn btn-light btn-sm"
-                    title="Collapse/expand"
-                    aria-expanded="true"
-                    aria-controls="filters-panel">
-                <span class="chev">‹</span>
-            </button>
+    <!-- LEFT PANEL (filters + summary + details) -->
+    <aside id="left-panel" class="lp" aria-label="Left panel">
+        <div id="lp-content" class="lp-content">
+            <!-- Filters -->
+            <section class="lp-section" aria-labelledby="filters-title">
+                <div id="filters-panel"></div>
+            </section>
+
+            <!-- Selection details -->
+            <section id="ls-details" class="lp-section card card-body ls-details" aria-labelledby="selection-title">
+                <div id="selection-title" class="card-title">Selected landslide</div>
+
+                <div id="selected-empty" class="text-muted">
+                    Click a landslide on the map to see details here.
+                </div>
+
+                <table id="selected-table" class="table table-sm table-borderless d-none">
+                    <tbody id="selected-tbody"></tbody>
+                </table>
+            </section>
         </div>
-        <div id="filters-panel"></div>
-        <section id="ls-details" class="card card-body ls-details">
-            <div class="card-title">Selected landslide</div>
-
-            <div id="selected-empty" class="text-muted">
-                Click a landslide on the map to see details here.
-            </div>
-
-            <table id="selected-table" class="table table-sm table-borderless d-none">
-                <tbody id="selected-tbody"></tbody>
-            </table>
-        </section>
     </aside>
 
-    <div id="split-gutter" role="separator" aria-label="Resize panels" tabindex="0"></div>
+    <!-- DRAG GUTTER -->
+    <div id="split-gutter" role="separator" aria-label="Resize panels" aria-orientation="vertical" tabindex="0"></div>
 
+    <!-- MAP -->
     <section id="map-wrapper" class="position-relative">
         <div id="map"></div>
 
@@ -66,10 +55,7 @@
         </div>
     </section>
 </main>
-<script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        defer>
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/nouislider@15.8.1/dist/nouislider.min.js"></script>
 <script type="module" src="/src/main.js"></script>
 </body>
