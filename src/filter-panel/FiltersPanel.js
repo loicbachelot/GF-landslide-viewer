@@ -19,12 +19,12 @@ export class FiltersPanel {
         const wrap = document.createElement('div');
         wrap.className = 'filters card shadow-sm';
         wrap.innerHTML = `
-      <div class="card-body">
-        <h5 class="card-title mb-3">Landslide Filters</h5>
-        <div class="accordion" id="filtersAccordion"></div>
-        <div class="d-flex gap-2 mt-3">
-          <button type="button" class="btn btn-primary" id="applyFiltersBtn">Apply Filters</button>
-          <button type="button" class="btn btn-outline-secondary" id="resetFiltersBtn">Reset</button>
+      <div class="card-body p-2">
+        <h5 class="card-title mb-2">Filters</h5>
+        <div class="accordion accordion-flush" id="filtersAccordion"></div>
+        <div class="d-flex gap-2 mt-2">
+          <button type="button" class="btn btn-primary flex-fill" id="applyFiltersBtn">Apply</button>
+          <button type="button" class="btn btn-outline-secondary flex-fill" id="resetFiltersBtn">Reset</button>
         </div>
       </div>
     `;
@@ -73,7 +73,7 @@ export class FiltersPanel {
         item.className = 'accordion-item';
         item.innerHTML = `
       <h2 class="accordion-header" id="${headingId}">
-        <button class="accordion-button" type="button"
+        <button class="accordion-button py-2" type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#${collapseId}"
                 aria-expanded="true"
@@ -107,7 +107,7 @@ export class FiltersPanel {
         const section = document.createElement('div');
         section.className = 'vstack gap-3';
 
-        for (const [key, { label, options }] of Object.entries(this.config.categorical)) {
+        for (const [key, {label, options}] of Object.entries(this.config.categorical)) {
             const group = document.createElement('div');
             group.className = 'mb-1';
             group.dataset.key = key;
@@ -122,7 +122,7 @@ export class FiltersPanel {
                 col.innerHTML = `
           <div class="form-check">
             <input class="form-check-input" type="checkbox" value="${opt}" id="${id}">
-            <label class="form-check-label" for="${id}">${opt}</label>
+            <label class="form-check-label" style="font-size: 14px" for="${id}">${opt}</label>
           </div>
         `;
                 grid.appendChild(col);
@@ -143,10 +143,10 @@ export class FiltersPanel {
             const { label, min, max, step, initialMin = min, initialMax = max } = cfg;
 
             const group = document.createElement('div');
-            group.className = 'mb-3';
+            group.className = 'mb-0';
             group.dataset.key = key;
             group.innerHTML = `
-        <label class="form-label fw-semibold">${label}</label>
+        <label class="form-label fw-semibold" style="font-size: 14px">${label}</label>
         <div id="ns_${key}" class="mb-2 slider-round"></div>
         <div class="row gx-2">
           <div class="col">

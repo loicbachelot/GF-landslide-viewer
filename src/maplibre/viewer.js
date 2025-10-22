@@ -26,9 +26,9 @@ function baseStyle() {
 }
 
 function popupHTML(props) {
-    // Support both polygon and point clusters
-    if ('poly_count' in (props || {})) return `<b>Cluster</b><br/>Count: ${props.poly_count}`;
-    if ('pt_count'   in (props || {})) return `<b>Cluster</b><br/>Count: ${props.pt_count}`;
+    // // Support both polygon and point clusters
+    // if ('poly_count' in (props || {})) return `<b>Cluster</b><br/>Count: ${props.poly_count}`;
+    // if ('pt_count'   in (props || {})) return `<b>Cluster</b><br/>Count: ${props.pt_count}`;
 
     const fields = ['gid','material','movement','confidence','pga','pgv','psa03','mmi'];
     const rows = fields
@@ -87,7 +87,7 @@ export function startMapLibre() {
     map.on('click', styleIds.polysCluster, e => {
         const f = e.features?.[0]; if (!f) return;
         map.easeTo({ center: e.lngLat, zoom: Math.max(map.getZoom() + 2, Z_RAW_POLYS) });
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+        // new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
     });
     map.on('mouseenter', styleIds.polysCluster, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', styleIds.polysCluster, () => (map.getCanvas().style.cursor = ''));
@@ -109,7 +109,7 @@ export function startMapLibre() {
     map.on('click', styleIds.pointsCluster, e => {
         const f = e.features?.[0]; if (!f) return;
         map.easeTo({ center: e.lngLat, zoom: Math.max(map.getZoom() + 2, Z_RAW_POINTS) });
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+        // new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
     });
     map.on('mouseenter', styleIds.pointsCluster, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', styleIds.pointsCluster, () => (map.getCanvas().style.cursor = ''));

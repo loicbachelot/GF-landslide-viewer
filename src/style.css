@@ -136,8 +136,8 @@ body.is-resizing {
     margin-top: 12px;
     padding-top: 10px;
     border-top: 1px solid #e6e6e6;
-    font-size: 13px;
     line-height: 1.35;
+    font-size: 14px;
 }
 
 .ls-details__header {

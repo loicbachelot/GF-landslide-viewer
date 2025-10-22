@@ -17,6 +17,13 @@ export function showSelectedDetailsFromFeatureProps(props) {
     window.dispatchEvent(new CustomEvent('ls:selected', { detail: { gid } }));
 }
 
+const numericRanges = {
+    pga:   { elementId: 'pgaRange',   label: 'PGA (%g)',      unit: '%g',  tolerance: 0.1 },
+    pgv:   { elementId: 'pgvRange',   label: 'PGV (cm/s)',    unit: 'cm/s',tolerance: 0.1 },
+    psa03: { elementId: 'psa03Range', label: 'PSA 0.3s (%g)', unit: '%g',  tolerance: 0.1 },
+    mmi:   { elementId: 'mmiRange',   label: 'MMI',           unit: '',    tolerance: 0.05 }
+};
+
 function renderSelectedTable(obj) {
     const empty = document.getElementById('selected-empty');
     const table = document.getElementById('selected-table');
@@ -36,25 +43,46 @@ function renderSelectedTable(obj) {
     empty.classList.add('d-none');
     table.classList.remove('d-none');
 
-    const preferred = ['gid','name','material','movement','confidence','area','length','pga','pgv','psa03','mmi','source','updated_at'];
+    const preferred = [
+        'gid','name','material','movement','confidence','area','length',
+        'pga','pgv','psa03','mmi','source','updated_at'
+    ];
     const done = new Set();
 
     const addRow = (label, value) => {
         const tr = document.createElement('tr');
         const k = document.createElement('td');
         const v = document.createElement('td');
-        k.textContent = label.replace(/_/g,' ').replace(/\b\w/g, m => m.toUpperCase());
+
+        k.textContent = label.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
+
+        // Add unit if defined in numericRanges
+        const unit = numericRanges[label]?.unit || '';
+        const displayValue =
+            typeof value === 'number' && unit
+                ? `${value} ${unit}`
+                : String(value);
+
         if (typeof value === 'string' && /^https?:\/\/|^www\./i.test(value)) {
-            const a = document.createElement('a'); a.href = value; a.target = '_blank'; a.rel = 'noopener'; a.textContent = value;
+            const a = document.createElement('a');
+            a.href = value;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = value;
             v.appendChild(a);
         } else {
-            v.textContent = String(value);
+            v.textContent = displayValue;
         }
+
         tr.append(k, v);
         tbody.appendChild(tr);
     };
 
-    for (const key of preferred) if (obj[key] != null) { addRow(key, obj[key]); done.add(key); }
+    for (const key of preferred)
+        if (obj[key] != null) {
+            addRow(key, obj[key]);
+            done.add(key);
+        }
 
     const datasetLink = obj.dataset_link || obj.dataset_url || obj.details_url || obj.source_url || obj.url;
     if (datasetLink) addRow('dataset_link', datasetLink);

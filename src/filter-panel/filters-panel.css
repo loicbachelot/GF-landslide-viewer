@@ -23,3 +23,8 @@
 .slider-round .noUi-handle:after {
     display: none;
 }
+
+.accordion-button {
+    font-weight: bold;
+    font-size: 14px;
+}
