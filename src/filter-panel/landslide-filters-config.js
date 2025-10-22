@@ -26,7 +26,7 @@
                 { label: 'Slide' },
                 { label: 'Slide-Rotational' },
                 { label: 'Slide-Translational' },
-                { label: 'Avalance', matchValues: ['Avalance', 'Avalanche'] },
+                { label: 'Avalanche', matchValues: ['Avalance', 'Avalanche'] },
                 { label: 'Flood' },
                 { label: 'Deformation' },
                 { label: 'Topple', matchValues: ['Topple', 'Toppple'] },
