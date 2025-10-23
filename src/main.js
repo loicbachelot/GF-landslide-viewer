@@ -147,9 +147,6 @@ function initSplitter(map) {
 // ---- boot ----
 const map = startMapLibre();
 map.once('load', () => {
-    // Collapse filters when a landslide is selected
-    window.addEventListener('ls:selected', () => setFiltersCollapsed(true));
-
     initFiltersPanel(map);
     initSplitter(map);
     if (typeof initSummaryPane === 'function') initSummaryPane(map);

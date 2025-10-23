@@ -223,28 +223,6 @@ export class FiltersPanel {
         }
     }
 
-    /** Close a specific section by key ('cat' or 'num') */
-    closeSection(key) {
-        const sec = this._sections[key];
-        if (!sec) return;
-        if (sec.bs) sec.bs.hide();
-        else {
-            sec.collapseEl.classList.remove('show');
-            sec.buttonEl.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    /** Open a specific section by key ('cat' or 'num') */
-    openSection(key) {
-        const sec = this._sections[key];
-        if (!sec) return;
-        if (sec.bs) sec.bs.show();
-        else {
-            sec.collapseEl.classList.add('show');
-            sec.buttonEl.setAttribute('aria-expanded', 'true');
-        }
-    }
-
     getFilters() {
         const out = { categorical: {}, numeric: {} };
 
@@ -273,5 +251,8 @@ export class FiltersPanel {
             const { slider, cfg } = obj;
             slider.set([cfg.min, cfg.max]);
         }
+        queueMicrotask(() => {
+            this.config.onApply?.(this.getFilters());
+        });
     }
 }
