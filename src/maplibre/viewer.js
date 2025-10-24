@@ -69,10 +69,6 @@ export function startMapLibre() {
     map.addControl(new maplibregl.NavigationControl({showCompass: true}), 'top-right');
     map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: 'metric'}));
 
-    map.addControl(new maplibregl.AttributionControl({
-        compact: true
-    }));
-
     map.on('load', async () => {
         // =========== Initialize CFM and PGA overlay ===========
         await initFaultOverlay(map, CFM_URLS, {initialVisibility: 'visible'});
