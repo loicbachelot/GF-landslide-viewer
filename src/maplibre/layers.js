@@ -94,7 +94,10 @@ export function addPolygonLayers(style) {
             source: 'polys_raw',
             'source-layer': sourceLayers.polys.raw, // "ls_polygons"
             minzoom: Z_RAW_POLYS,
-            paint: { 'fill-color': '#236', 'fill-opacity': 0.25 }
+            paint: {
+                'fill-color': 'rgba(120, 200, 255, 0.40)',
+                'fill-outline-color': 'rgba(30, 120, 190, 0.8)'
+            }
         },
         {
             id: styleIds.polysLine,
@@ -102,7 +105,7 @@ export function addPolygonLayers(style) {
             source: 'polys_raw',
             'source-layer': sourceLayers.polys.raw,
             minzoom: Z_RAW_POLYS,
-            paint: { 'line-color': '#124', 'line-width': 1 }
+            paint: { 'line-color': 'rgba(46,111,244,0.11)', 'line-width': 1 }
         }
     );
 }
@@ -178,11 +181,11 @@ export function addPointLayers(style) {
         paint: {
             'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
-                Z_RAW_POINTS, 2.5,
-                Z_RAW_POINTS + 2, 3.5,
-                22, 5
+                Z_RAW_POINTS, 4,
+                Z_RAW_POINTS + 2, 5.5,
+                22, 7
             ],
-            'circle-color': '#236',
+            'circle-color': 'rgba(120, 200, 255, 0.80)',
             'circle-opacity': 0.85,
             'circle-stroke-color': '#124',
             'circle-stroke-width': 0.75

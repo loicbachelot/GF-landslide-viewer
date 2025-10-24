@@ -24,44 +24,29 @@ function baseStyle() {
     return style;
 }
 
-function popupHTML(props) {
-    // // Support both polygon and point clusters
-    // if ('poly_count' in (props || {})) return `<b>Cluster</b><br/>Count: ${props.poly_count}`;
-    // if ('pt_count'   in (props || {})) return `<b>Cluster</b><br/>Count: ${props.pt_count}`;
+function bringLandslidesToFront(map) {
+    const lsTopOrder = [
+        styleIds.polysCluster,
+        styleIds.polysClusterCount,
+        styleIds.pointsCluster,
+        styleIds.pointsClusterCount,
 
+        styleIds.polysFill,
+        styleIds.pointsCircle
+    ].filter(id => !!map.getLayer(id)); // ignore missing ones
+
+    for (const id of lsTopOrder) {
+        map.moveLayer(id); // no beforeId => move to top
+    }
+}
+
+function popupHTML(props) {
     const fields = ['gid', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi'];
     const rows = fields
         .filter(k => k in (props || {}))
         .map(k => `<div><b>${k}</b>: ${props[k]}</div>`)
         .join('');
     return `<div style="font:12px/1.35 sans-serif"><b>Landslide</b>${rows ? '<hr/>' + rows : ''}</div>`;
-}
-
-function ensureFaultsToggle() {
-    let el = document.getElementById('toggleFaults');
-    if (el) return el;
-
-    // Create a simple control and append to filters wrapper
-    const wrapper = document.getElementById('filters-wrapper') || document.body;
-    const label = document.createElement('label');
-    label.className = 'form-check';
-    label.style.display = 'block';
-    label.style.margin = '8px 0';
-
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.id = 'toggleFaults';
-    input.className = 'form-check-input';
-    input.checked = true;
-
-    const span = document.createElement('span');
-    span.className = 'form-check-label';
-    span.textContent = 'CFM fault overlay';
-
-    label.appendChild(input);
-    label.appendChild(span);
-    wrapper.appendChild(label);
-    return input;
 }
 
 /** Create and return the MapLibre map. No filter/apply logic here. */
@@ -84,74 +69,18 @@ export function startMapLibre() {
     map.addControl(new maplibregl.NavigationControl({showCompass: true}), 'top-right');
     map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: 'metric'}));
 
-    // =========================
-    // Interactions: POLY CLUSTERS
-    // =========================
-    map.on('click', styleIds.polysCluster, e => {
-        const f = e.features?.[0];
-        if (!f) return;
-        map.easeTo({
-            center: e.lngLat, zoom: Math.min(map.getZoom() + 2, Z_RAW_POLYS), duration: 1000
-        });
-    });
-    map.on('mouseenter', styleIds.polysCluster, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', styleIds.polysCluster, () => (map.getCanvas().style.cursor = ''));
-
-    // =========================
-    // Interactions: RAW POLYGONS
-    // =========================
-    map.on('click', styleIds.polysFill, e => {
-        const f = e.features?.[0];
-        if (!f) return;
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
-        showSelectedDetailsFromFeatureProps(f.properties || {});
-    });
-    map.on('mouseenter', styleIds.polysFill, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', styleIds.polysFill, () => (map.getCanvas().style.cursor = ''));
-
-    // =========================
-    // Interactions: POINT CLUSTERS
-    // =========================
-    map.on('click', styleIds.pointsCluster, e => {
-        const f = e.features?.[0];
-        if (!f) return;
-        map.easeTo({
-            center: e.lngLat, zoom: Math.min(map.getZoom() + 2, Z_RAW_POINTS), duration: 1000
-        });
-    });
-    map.on('mouseenter', styleIds.pointsCluster, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', styleIds.pointsCluster, () => (map.getCanvas().style.cursor = ''));
-
-    // =========================
-    // Interactions: RAW POINTS
-    // =========================
-    map.on('click', styleIds.pointsCircle, e => {
-        const f = e.features?.[0];
-        if (!f) return;
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
-        showSelectedDetailsFromFeatureProps(f.properties || {});
-    });
-    map.on('mouseenter', styleIds.pointsCircle, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', styleIds.pointsCircle, () => (map.getCanvas().style.cursor = ''));
-
-    // Optional zoom indicator
-    map.on('load', () => {
-        const zoomBox = document.createElement('div');
-        zoomBox.className = 'zoom-box';
-        zoomBox.textContent = `Zoom: ${map.getZoom().toFixed(2)}`;
-        map.getContainer().appendChild(zoomBox);
-        const updateZoom = () => {
-            zoomBox.textContent = `Zoom: ${map.getZoom().toFixed(2)}`;
-        };
-        map.on('zoom', updateZoom);
-        map.on('moveend', updateZoom);
-    });
+    map.addControl(new maplibregl.AttributionControl({
+        compact: true
+    }));
 
     map.on('load', async () => {
-        // =========== Initialize CFM overlay ===========
+        // =========== Initialize CFM and PGA overlay ===========
         await initFaultOverlay(map, CFM_URLS, {initialVisibility: 'visible'});
         const PGA_URL = new URL('../resources/pga_contours.json', import.meta.url).href;
         await initPgaOverlay(map, PGA_URL);
+
+        // make sure the landslide data is on top of the other layers
+        bringLandslidesToFront(map);
 
         class OverlayToggleControl {
             onAdd(map) {
@@ -215,6 +144,69 @@ export function startMapLibre() {
         }
 
         map.addControl(new OverlayToggleControl(), 'top-left');
+    });
+
+    // =========================
+    // Interactions: POLY CLUSTERS
+    // =========================
+    map.on('click', styleIds.polysCluster, e => {
+        const f = e.features?.[0];
+        if (!f) return;
+        map.easeTo({
+            center: e.lngLat, zoom: Math.min(map.getZoom() + 2, Z_RAW_POLYS), duration: 1000
+        });
+    });
+    map.on('mouseenter', styleIds.polysCluster, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', styleIds.polysCluster, () => (map.getCanvas().style.cursor = ''));
+
+    // =========================
+    // Interactions: RAW POLYGONS
+    // =========================
+    map.on('click', styleIds.polysFill, e => {
+        const f = e.features?.[0];
+        if (!f) return;
+        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+        showSelectedDetailsFromFeatureProps(f.properties || {});
+    });
+    map.on('mouseenter', styleIds.polysFill, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', styleIds.polysFill, () => (map.getCanvas().style.cursor = ''));
+
+    // =========================
+    // Interactions: POINT CLUSTERS
+    // =========================
+    map.on('click', styleIds.pointsCluster, e => {
+        const f = e.features?.[0];
+        if (!f) return;
+        map.easeTo({
+            center: e.lngLat, zoom: Math.min(map.getZoom() + 2, Z_RAW_POINTS), duration: 1000
+        });
+    });
+    map.on('mouseenter', styleIds.pointsCluster, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', styleIds.pointsCluster, () => (map.getCanvas().style.cursor = ''));
+
+    // =========================
+    // Interactions: RAW POINTS
+    // =========================
+    map.on('click', styleIds.pointsCircle, e => {
+        const f = e.features?.[0];
+        if (!f) return;
+        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+        showSelectedDetailsFromFeatureProps(f.properties || {});
+    });
+    map.on('mouseenter', styleIds.pointsCircle, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', styleIds.pointsCircle, () => (map.getCanvas().style.cursor = ''));
+
+    // Optional zoom indicator
+    map.on('load', () => {
+        const zoomBox = document.createElement('div');
+        zoomBox.className = 'zoom-box';
+        zoomBox.textContent = `Zoom: ${map.getZoom().toFixed(2)}`;
+        map.getContainer().appendChild(zoomBox);
+        const updateZoom = () => {
+            zoomBox.textContent = `Zoom: ${map.getZoom().toFixed(2)}`;
+        };
+        map.on('zoom', updateZoom);
+        map.on('moveend', updateZoom);
     });
 
     return map;
