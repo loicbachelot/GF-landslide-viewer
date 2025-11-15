@@ -7,26 +7,26 @@ export function addVectorSources(style) {
     // POLYGON CLUSTERS (function)
     style.sources.polys_cluster = {
         type: 'vector',
-        tiles: [`${MARTIN_URL}/${sourceNames.polysClusterFn}/{z}/{x}/{y}`],
+        tiles: [`${MARTIN_URL}/${sourceNames.polysFn}/{z}/{x}/{y}?mode=cluster`],
         minzoom: 0, maxzoom: Z_RAW_POLYS
     };
     // RAW POLYGONS (table)
     style.sources.polys_raw = {
         type: 'vector',
-        tiles: [`${MARTIN_URL}/${sourceNames.polysTable}/{z}/{x}/{y}`],
+        tiles: [`${MARTIN_URL}/${sourceNames.polysFn}/{z}/{x}/{y}?mode=raw`],
         minzoom: Z_RAW_POLYS, maxzoom: 22
     };
 
     // POINTS CLUSTERS (function)
     style.sources.pointsCluster = {
         type: 'vector',
-        tiles: [`${MARTIN_URL}/${sourceNames.pointsClusterFn}/{z}/{x}/{y}`],
+        tiles: [`${MARTIN_URL}/${sourceNames.pointsFn}/{z}/{x}/{y}?mode=cluster`],
         minzoom: 0, maxzoom: Z_RAW_POINTS
     };
     // RAW POINTS (table)
     style.sources.points_raw = {
         type: 'vector',
-        tiles: [`${MARTIN_URL}/${sourceNames.pointsTable}/{z}/{x}/{y}`],
+        tiles: [`${MARTIN_URL}/${sourceNames.pointsFn}/{z}/{x}/{y}?mode=raw`],
         minzoom: Z_RAW_POINTS, maxzoom: 22
     };
 }
@@ -55,7 +55,7 @@ export function addPolygonLayers(style) {
         id: styleIds.polysCluster,
         type: 'circle',
         source: 'polys_cluster',
-        'source-layer': sourceLayers.polys.cluster, // "ls_polygons_cluster"
+        'source-layer': sourceLayers.polys.cluster,
         minzoom: 0, maxzoom: Z_RAW_POLYS,
         paint: {
             'circle-radius': radius,

@@ -1,6 +1,6 @@
 services:
   martin:
-    image: ghcr.io/maplibre/martin:latest
+    image: ghcr.io/maplibre/martin:0.20.2
     container_name: martin
     restart: unless-stopped
     ports:

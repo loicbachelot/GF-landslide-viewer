@@ -6,12 +6,8 @@ export const INITIAL_VIEW = { center: [-123.0, 44.0], zoom: 6 };
 
 // Endpoints (functions for clusters, tables for raw)
 export const sourceNames = {
-    // clusters (functions)
-    polysClusterFn:  'ls_polygons_cluster_filtered',
-    pointsClusterFn:  'ls_points_cluster_filtered',
-    // raw (tables/views)
-    polysTable:      'ls_polygons_raw_polygons_filtered',
-    pointsTable:     'ls_points_raw_points_filtered',
+    polysFn:  'landslide_v2.ls_polygons_q',  // <-- NEW: unified polygons endpoint
+    pointsFn: 'landslide_v2.ls_points_q',    // <-- NEW: unified points endpoint
 };
 
 // Vector layer ids *inside* the tiles (MVT layer names)
