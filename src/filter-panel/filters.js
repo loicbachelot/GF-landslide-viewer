@@ -16,7 +16,8 @@ function safeCfg() {
                 pga:   { elementId: 'pgaRange',   tolerance: 0 },
                 pgv:   { elementId: 'pgvRange',   tolerance: 0 },
                 psa03: { elementId: 'psa03Range', tolerance: 0 },
-                mmi:   { elementId: 'mmiRange',   tolerance: 0 }
+                mmi:   { elementId: 'mmiRange',   tolerance: 0 },
+                rain:   { elementId: 'rainRange',   tolerance: 0 }
             }
         };
     }
@@ -83,6 +84,7 @@ function buildQueryFromFiltersObject(filtersObj) {
     push('pgv');
     push('psa03');
     push('mmi');
+    push('rain');
 
     qp.set('ts', Date.now().toString());
     return qp.toString();
@@ -101,13 +103,13 @@ export function applyLandslideFiltersFromObject(map, filtersObj) {
     showMapLoading();
 
     setSourceTilesSafe(map, 'polys_cluster',
-        `${MARTIN_URL}/${sourceNames.polysClusterFn}/{z}/{x}/{y}?${qp}`);
+        `${MARTIN_URL}/${sourceNames.polysFn}/{z}/{x}/{y}?mode=cluster&${qp}`);
     setSourceTilesSafe(map, 'polys_raw',
-        `${MARTIN_URL}/${sourceNames.polysTable}/{z}/{x}/{y}?${qp}`);
-    setSourceTilesSafe(map, 'pointsCluster',
-        `${MARTIN_URL}/${sourceNames.pointsClusterFn}/{z}/{x}/{y}?${qp}`);
+        `${MARTIN_URL}/${sourceNames.polysFn}/{z}/{x}/{y}?mode=raw&${qp}`);
+    setSourceTilesSafe(map, 'points_cluster',
+        `${MARTIN_URL}/${sourceNames.pointsFn}/{z}/{x}/{y}?mode=cluster&${qp}`);
     setSourceTilesSafe(map, 'points_raw',
-        `${MARTIN_URL}/${sourceNames.pointsTable}/{z}/{x}/{y}?${qp}`);
+        `${MARTIN_URL}/${sourceNames.pointsFn}/{z}/{x}/{y}?mode=raw&${qp}`);
 
 
     let done = false;
@@ -145,6 +147,7 @@ export function buildFilterQuery() {
     pushRange('pgv',   n?.pgv);
     pushRange('psa03', n?.psa03);
     pushRange('mmi',   n?.mmi);
+    pushRange('rain', n?.rain);
 
     // cache-buster
     qp.set('ts', Date.now().toString());
@@ -221,7 +224,8 @@ export function getCurrentFiltersForSummary() {
             pga:   read('pga',   n.pga),
             pgv:   read('pgv',   n.pgv),
             psa03: read('psa03', n.psa03),
-            mmi:   read('mmi',   n.mmi)
+            mmi:   read('mmi',   n.mmi),
+            rain: read('rain',   n.rain),
         }
     };
 }

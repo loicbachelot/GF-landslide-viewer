@@ -7,7 +7,7 @@ export function initSummaryPane(map) {
 
 export function showSelectedDetailsFromFeatureProps(props) {
     console.log('[summary] map click props:', props);
-    const gid = props?.gid ?? props?.GID ?? props?.id;
+    const gid = props?.gid ?? props?.GID ?? props?.id ?? props?.viewer_id;
     if (!gid) {
         console.warn('[summary] no gid/id found in feature props');
         return;
@@ -21,7 +21,8 @@ const numericRanges = {
     pga:   { elementId: 'pgaRange',   label: 'PGA (%g)',      unit: '%g',  tolerance: 0.1 },
     pgv:   { elementId: 'pgvRange',   label: 'PGV (cm/s)',    unit: 'cm/s',tolerance: 0.1 },
     psa03: { elementId: 'psa03Range', label: 'PSA 0.3s (%g)', unit: '%g',  tolerance: 0.1 },
-    mmi:   { elementId: 'mmiRange',   label: 'MMI',           unit: '',    tolerance: 0.05 }
+    mmi:   { elementId: 'mmiRange',   label: 'MMI',           unit: '',    tolerance: 0.05 },
+    rainfall:  { elementId: 'rainRange',   label: 'Annual rain (mm)',  unit: 'mm/year',  tolerance: 0.1 }
 };
 
 function renderSelectedTable(obj) {
@@ -44,8 +45,8 @@ function renderSelectedTable(obj) {
     table.classList.remove('d-none');
 
     const preferred = [
-        'gid','name','material','movement','confidence','area','length',
-        'pga','pgv','psa03','mmi','source','updated_at'
+        'viewer_id','material','movement','confidence',
+        'pga','pgv','psa03','mmi','rain', 'source', 'reference'
     ];
     const done = new Set();
 
@@ -56,12 +57,16 @@ function renderSelectedTable(obj) {
 
         k.textContent = label.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
-        // Add unit if defined in numericRanges
         const unit = numericRanges[label]?.unit || '';
-        const displayValue =
-            typeof value === 'number' && unit
-                ? `${value} ${unit}`
-                : String(value);
+
+        let displayValue;
+        if (typeof value === 'number') {
+            const rounded = Math.round(value * 100) / 100;
+            const pretty = rounded.toString();
+            displayValue = unit ? `${pretty} ${unit}` : pretty;
+        } else {
+            displayValue = String(value);
+        }
 
         if (typeof value === 'string' && /^https?:\/\/|^www\./i.test(value)) {
             const a = document.createElement('a');
@@ -95,5 +100,5 @@ function renderSelectedTable(obj) {
         addRow(k, v);
     });
 
-    console.log('[summary] details rendered for gid:', obj.gid ?? obj.GID ?? obj.id);
+    console.log('[summary] details rendered for gid:', obj.gid ?? obj.GID ?? obj.id ?? obj.viewer_id);
 }

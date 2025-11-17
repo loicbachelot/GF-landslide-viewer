@@ -11,7 +11,8 @@ const DEFAULT_NUMERIC_BOUNDS = {
     pga:   { min: 0,   max: 150, step: 0.1 },
     pgv:   { min: 0,   max: 150, step: 0.1 },
     psa03: { min: 0,   max: 300, step: 0.1 },
-    mmi:   { min: 1,   max: 10,  step: 0.1 }
+    mmi:   { min: 1,   max: 10,  step: 0.1 },
+    rain:  { min: 0,   max: 5500,  step: 1 },
 };
 
 
@@ -26,7 +27,8 @@ function adaptPanelConfig(lfc) {
             pga:   { label: lfc.numericRanges.pga.label,   ...DEFAULT_NUMERIC_BOUNDS.pga   },
             pgv:   { label: lfc.numericRanges.pgv.label,   ...DEFAULT_NUMERIC_BOUNDS.pgv   },
             psa03: { label: lfc.numericRanges.psa03.label, ...DEFAULT_NUMERIC_BOUNDS.psa03 },
-            mmi:   { label: lfc.numericRanges.mmi.label,   ...DEFAULT_NUMERIC_BOUNDS.mmi   }
+            mmi:   { label: lfc.numericRanges.mmi.label,   ...DEFAULT_NUMERIC_BOUNDS.mmi   },
+            rain:  { label: lfc.numericRanges.rain.label,  ...DEFAULT_NUMERIC_BOUNDS.rain  },
         }
     };
 }
@@ -42,7 +44,8 @@ function toMartinFilters(panelFilters, lfc) {
             pga:   { min: panelFilters.numeric.pga?.min   ?? null, max: panelFilters.numeric.pga?.max   ?? null, tol: lfc.numericRanges.pga.tolerance },
             pgv:   { min: panelFilters.numeric.pgv?.min   ?? null, max: panelFilters.numeric.pgv?.max   ?? null, tol: lfc.numericRanges.pgv.tolerance },
             psa03: { min: panelFilters.numeric.psa03?.min ?? null, max: panelFilters.numeric.psa03?.max ?? null, tol: lfc.numericRanges.psa03.tolerance },
-            mmi:   { min: panelFilters.numeric.mmi?.min   ?? null, max: panelFilters.numeric.mmi?.max   ?? null, tol: lfc.numericRanges.mmi.tolerance }
+            mmi:   { min: panelFilters.numeric.mmi?.min   ?? null, max: panelFilters.numeric.mmi?.max   ?? null, tol: lfc.numericRanges.mmi.tolerance },
+            rain:  { min: panelFilters.numeric.rain?.min  ?? null, max: panelFilters.numeric.rain?.max  ?? null, tol: lfc.numericRanges.rain.tolerance }
         }
     };
 }

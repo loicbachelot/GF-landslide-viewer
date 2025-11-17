@@ -18,7 +18,7 @@ export function addVectorSources(style) {
     };
 
     // POINTS CLUSTERS (function)
-    style.sources.pointsCluster = {
+    style.sources.points_cluster = {
         type: 'vector',
         tiles: [`${MARTIN_URL}/${sourceNames.pointsFn}/{z}/{x}/{y}?mode=cluster`],
         minzoom: 0, maxzoom: Z_RAW_POINTS
@@ -139,7 +139,7 @@ export function addPointLayers(style) {
     style.layers.push({
         id: styleIds.pointsCluster,
         type: 'circle',
-        source: 'pointsCluster',
+        source: 'points_cluster',
         'source-layer': sourceLayers.points.cluster, // "ls_points_cluster"
         minzoom: 0, maxzoom: Z_RAW_POINTS,
         paint: {
@@ -155,7 +155,7 @@ export function addPointLayers(style) {
     style.layers.push({
         id: styleIds.pointsClusterCount,
         type: 'symbol',
-        source: 'pointsCluster',
+        source: 'points_cluster',
         'source-layer': sourceLayers.points.cluster,
         minzoom: 0, maxzoom: Z_RAW_POINTS,
         layout: {

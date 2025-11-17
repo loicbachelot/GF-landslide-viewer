@@ -51,7 +51,8 @@
         pga:   { elementId: 'pgaRange',   label: 'PGA (%g)',      unit: '%g',  tolerance: 0.1 },
         pgv:   { elementId: 'pgvRange',   label: 'PGV (cm/s)',    unit: 'cm/s',tolerance: 0.1 },
         psa03: { elementId: 'psa03Range', label: 'PSA 0.3s (%g)', unit: '%g',  tolerance: 0.1 },
-        mmi:   { elementId: 'mmiRange',   label: 'MMI',           unit: '',    tolerance: 0.05 }
+        mmi:   { elementId: 'mmiRange',   label: 'MMI',           unit: '',    tolerance: 0.05 },
+        rain:   { elementId: 'rainRange',   label: 'Annual rain (mm)', unit: 'mm',    tolerance: 0.1 }
     };
 
     window.LandslideFilterConfig = { categorical, numericRanges };

@@ -41,7 +41,7 @@ function bringLandslidesToFront(map) {
 }
 
 function popupHTML(props) {
-    const fields = ['gid', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi'];
+    const fields = ['id', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi', 'rainfall'];
     const rows = fields
         .filter(k => k in (props || {}))
         .map(k => `<div><b>${k}</b>: ${props[k]}</div>`)
