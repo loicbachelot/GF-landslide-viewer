@@ -255,3 +255,110 @@ def download(req: DownloadRequest):
         media_type="application/zip" if filename.endswith(".zip") else "application/geo+json",
         filename=filename,
     )
+
+
+@app.post("/count")
+def count_landslides(filters: Filters):
+    """
+    Return how many features match the given filters,
+    using the same landslide_v2.export_original_from_filters(...) function
+    that the /download endpoint uses.
+    """
+    # Build params exactly like in generate_geojson_export
+    try:
+        try:
+            filters_dict = filters.dict()
+        except AttributeError:
+            filters_dict = filters.model_dump()
+        print("=== /count called with filters ===")
+        print(json.dumps(filters_dict, indent=2, default=str))
+    except Exception:
+        pass
+
+    materials = filters.materials or []
+    movements = filters.movements or []
+    confidences = filters.confidences or []
+
+    selection_geojson_str = (
+        json.dumps(filters.selection_geojson)
+        if filters.selection_geojson else None
+    )
+
+    params = {
+        "materials": materials,
+        "movements": movements,
+        "confidences": confidences,
+        "pga_min": filters.pga_min,
+        "pga_max": filters.pga_max,
+        "pgv_min": filters.pgv_min,
+        "pgv_max": filters.pgv_max,
+        "psa03_min": filters.psa03_min,
+        "psa03_max": filters.psa03_max,
+        "mmi_min": filters.mmi_min,
+        "mmi_max": filters.mmi_max,
+        "tol_pga": filters.tol_pga,
+        "tol_pgv": filters.tol_pgv,
+        "tol_psa03": filters.tol_psa03,
+        "tol_mmi": filters.tol_mmi,
+        "rain_min": filters.rain_min,
+        "rain_max": filters.rain_max,
+        "tol_rain": filters.tol_rain,
+        "selection_geojson": selection_geojson_str,
+        # For counting you probably want "no cap" or a big cap.
+        # Use the same default as download, or bump it:
+        "max_features": 200_000,
+    }
+
+    sql = """
+          SELECT COUNT(*) AS count
+          FROM landslide_v2.export_original_from_filters(
+              %(materials)s,
+              %(movements)s,
+              %(confidences)s,
+              %(pga_min)s,
+              %(pga_max)s,
+              %(pgv_min)s,
+              %(pgv_max)s,
+              %(psa03_min)s,
+              %(psa03_max)s,
+              %(mmi_min)s,
+              %(mmi_max)s,
+              %(tol_pga)s,
+              %(tol_pgv)s,
+              %(tol_psa03)s,
+              %(tol_mmi)s,
+              %(rain_min)s,
+              %(rain_max)s,
+              %(tol_rain)s,
+              CASE
+              WHEN %(selection_geojson)s IS NULL THEN NULL
+              ELSE ST_Transform(
+              ST_SetSRID(
+              ST_GeomFromGeoJSON(%(selection_geojson)s),
+              4326
+              ),
+              3857
+              )
+              END,
+              %(max_features)s
+              ); \
+          """
+
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+        print("Executing COUNT(*) via export_original_from_filters...")
+        cur.execute(sql, params)
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        # row[0] or row["count"], depending on DictCursor
+        count = row["count"] if isinstance(row, dict) else row[0]
+        print(f"/count result: {count}")
+        return {"count": count}
+
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=400, detail=f"Database error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Count failed: {e}")

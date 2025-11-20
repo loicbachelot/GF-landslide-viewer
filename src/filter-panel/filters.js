@@ -1,6 +1,8 @@
 // filters.js
 import {MARTIN_URL, sourceNames} from '../maplibre/config.js';
 
+let _currentFiltersForSummary = null;
+
 // ---- safe helpers ----
 function safeCfg() {
     const cfg = window?.LandslideFilterConfig;
@@ -214,60 +216,15 @@ async function setSourceTilesSafe(map, sourceId, url) {
     }
 }
 
+export function setCurrentFiltersForSummary(filtersObj) {
+    _currentFiltersForSummary = filtersObj;
+}
+
 export function getCurrentFiltersForSummary() {
-    const cfg = safeCfg();
-
-    console.log('[filters] safeCfg()', cfg);
-
-    // categorical
-    const c = cfg.categorical || {};
-    console.log('[filters] categorical config:', c);
-
-    const materialSelected = getSelectedValues(c.material?.elementId);
-    const movementSelected = getSelectedValues(c.movement?.elementId);
-    const confidenceSelected = getSelectedValues(c.confidence?.elementId);
-
-    console.log('[filters] selected material values:', materialSelected);
-    console.log('[filters] selected movement values:', movementSelected);
-    console.log('[filters] selected confidence values:', confidenceSelected);
-
-    const materials = collectCategorical(c.material, materialSelected);
-    const movements = collectCategorical(c.movement, movementSelected);
-    const confidences = collectCategorical(c.confidence, confidenceSelected);
-
-    console.log('[filters] materials after collectCategorical:', materials);
-    console.log('[filters] movements after collectCategorical:', movements);
-    console.log('[filters] confidences after collectCategorical:', confidences);
-
-    // numeric (min/max from inputs; include tolerance for display if you want)
-    const n = cfg.numericRanges || {};
-    const read = (key, groupCfg) => {
-        if (!groupCfg) {
-            console.log(`[filters] numeric groupCfg for ${key} is missing`);
-            return null;
-        }
-        const r = getRange(groupCfg.elementId);
-        console.log(`[filters] numeric raw range for ${key}:`, r);
-        if (!r) return null;
-        const [minV, maxV] = r;
-        return {min: minV, max: maxV, tol: groupCfg.tolerance ?? null};
-    };
-
-    const pga = read('pga', n.pga);
-    const pgv = read('pgv', n.pgv);
-    const psa03 = read('psa03', n.psa03);
-    const mmi = read('mmi', n.mmi);
-    const rain = read('rain', n.rain);
-
-    const result = {
-        categorical: {material: materials, movement: movements, confidence: confidences},
-        numeric: {pga, pgv, psa03, mmi, rain},
-    };
-
-    console.log('[filters] getCurrentFiltersForSummary result:', result);
-
-    return result;
-
+    if (_currentFiltersForSummary) {
+        console.log('[filters] getCurrentFiltersForSummary (from state):', _currentFiltersForSummary);
+        return _currentFiltersForSummary;
+    }
 }
 
 export function buildFilterSearchParams(extra = {}) {

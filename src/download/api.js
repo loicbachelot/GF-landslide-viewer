@@ -19,9 +19,7 @@ export async function requestDownload(filters, { compress = false } = {}) {
         compress,
     };
 
-    // const res = await fetch('/api/download', {
-    const res = await fetch('http://localhost:8001/download', {
-
+    const res = await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

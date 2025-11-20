@@ -6,6 +6,7 @@ import { applyLandslideFiltersFromObject } from './filter-panel/filters.js';
 import './filter-panel/landslide-filters-config.js';
 import { initSummaryPane } from './summary/summary.js';
 import { initDownloadPanel } from './download/downloadPanel.js';
+import {setCurrentFilterSummary} from "./filter-panel/filterState.js";
 
 // ---- defaults ----
 const DEFAULT_NUMERIC_BOUNDS = {
@@ -15,7 +16,6 @@ const DEFAULT_NUMERIC_BOUNDS = {
     mmi:   { min: 1,   max: 10,  step: 0.1 },
     rain:  { min: 0,   max: 5500,  step: 1 },
 };
-
 
 function adaptPanelConfig(lfc) {
     return {
@@ -61,10 +61,14 @@ function initFiltersPanel(map) {
         categorical: cfg.categorical,
         numeric: cfg.numeric,
         onApply: (filters) => {
-            applyLandslideFiltersFromObject(map, toMartinFilters(filters, lfc));
+            const martinFilters = toMartinFilters(filters, lfc);
+
+            // Save them for later (summary, download, etc.)
+            setCurrentFilterSummary(martinFilters);
+            applyLandslideFiltersFromObject(map, martinFilters);
         },
         onReset: () => {
-            // Any additional reset-side effects here (map refresh already in your code)
+            currentMartinFilters = null;
         }
     });
 }

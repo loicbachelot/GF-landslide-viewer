@@ -1,10 +1,10 @@
 // src/download/downloadPanel.js
 
 import { requestDownload } from './api.js';
-import { getCurrentFiltersForSummary } from '../filter-panel/filters.js';
+import { getCurrentFilterSummary } from '../filter-panel/filterState.js';
 
 /**
- * Map the output of getCurrentFiltersForSummary()
+ * Map the output of getCurrentFilterSummary()
  * into the backend Filters model expected by FastAPI.
  */
 function buildBackendFiltersFromSummary(summary) {
@@ -53,68 +53,73 @@ function buildBackendFiltersFromSummary(summary) {
  * @param {HTMLElement|string} options.container - DOM element or element id where the panel will be mounted
  */
 export function initDownloadPanel({ container }) {
-    let root;
-    if (typeof container === 'string') {
-        root = document.getElementById(container);
-    } else {
-        root = container;
-    }
+    const mountEl = (typeof container === 'string')
+        ? document.getElementById(container)
+        : container;
 
-    if (!root) {
+    if (!mountEl) {
         console.warn('[downloadPanel] Container not found');
         return;
     }
 
-    // Build basic UI
-    root.classList.add('download-panel');
+    // --- Layout: match FiltersPanel card style ---
+    const wrap = document.createElement('div');
+    wrap.className = 'download card shadow-sm';
 
-    const title = document.createElement('h3');
-    title.textContent = 'Download landslides';
+    wrap.innerHTML = `
+      <div class="card-body p-2">
+        <h5 class="card-title mb-2">Download landslides</h5>
+        <p class="card-text small mb-2">
+          Download all landslides matching the current applied filters as GeoJSON.
+        </p>
 
-    const description = document.createElement('p');
-    description.textContent =
-        'Download all landslides matching the current filters as GeoJSON.';
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="downloadCompress">
+          <label class="form-check-label small" for="downloadCompress">
+            Compress as .zip
+          </label>
+        </div>
 
-    const compressLabel = document.createElement('label');
-    compressLabel.style.display = 'flex';
-    compressLabel.style.alignItems = 'center';
-    compressLabel.style.gap = '0.25rem';
+        <button type="button"
+                class="btn btn-primary btn-sm w-100"
+                id="downloadBtn">
+          Download
+        </button>
 
-    const compressCheckbox = document.createElement('input');
-    compressCheckbox.type = 'checkbox';
-    compressCheckbox.checked = false;
+        <div class="small mt-1" id="downloadStatus"></div>
+      </div>
+    `;
 
-    const compressText = document.createElement('span');
-    compressText.textContent = 'Compress as .zip';
+    mountEl.innerHTML = '';
+    mountEl.appendChild(wrap);
 
-    compressLabel.appendChild(compressCheckbox);
-    compressLabel.appendChild(compressText);
+    const compressCheckbox = wrap.querySelector('#downloadCompress');
+    const button = wrap.querySelector('#downloadBtn');
+    const status = wrap.querySelector('#downloadStatus');
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = 'Download';
-    button.classList.add('download-button');
+    const setStatus = (message, type = 'muted') => {
+        status.textContent = message || '';
+        status.classList.remove('text-success', 'text-danger', 'text-muted');
 
-    const status = document.createElement('div');
-    status.classList.add('download-status');
-    status.style.fontSize = '0.85rem';
-    status.style.marginTop = '0.25rem';
+        if (!message) return;
 
-    root.appendChild(title);
-    root.appendChild(description);
-    root.appendChild(compressLabel);
-    root.appendChild(button);
-    root.appendChild(status);
+        if (type === 'success') {
+            status.classList.add('text-success');
+        } else if (type === 'error') {
+            status.classList.add('text-danger');
+        } else {
+            status.classList.add('text-muted');
+        }
+    };
 
-    // Click handler
+    // --- Click handler ---
     button.addEventListener('click', async () => {
         let summaryFilters;
         try {
-            summaryFilters = getCurrentFiltersForSummary();
+            summaryFilters = getCurrentFilterSummary();
         } catch (err) {
-            console.error('[downloadPanel] getCurrentFiltersForSummary() threw', err);
-            status.textContent = 'Failed to read current filters.';
-            status.style.color = 'red';
+            console.error('[downloadPanel] getCurrentFilterSummary() threw', err);
+            setStatus('Failed to read current filters.', 'error');
             return;
         }
 
@@ -125,18 +130,15 @@ export function initDownloadPanel({ container }) {
         console.log('[downloadPanel] backendFilters being sent:', backendFilters);
 
         button.disabled = true;
-        button.textContent = 'Downloading...';
-        status.textContent = 'Preparing file…';
-        status.style.color = 'inherit';
+        button.textContent = 'Downloading…';
+        setStatus('Preparing file…', 'muted');
 
         try {
             await requestDownload(backendFilters, { compress: compressCheckbox.checked });
-            status.textContent = 'Download started.';
-            status.style.color = 'green';
+            setStatus('Download started.', 'success');
         } catch (err) {
             console.error('[downloadPanel] download error', err);
-            status.textContent = err.message || 'Download failed.';
-            status.style.color = 'red';
+            setStatus(err?.message || 'Download failed.', 'error');
         } finally {
             button.disabled = false;
             button.textContent = 'Download';
