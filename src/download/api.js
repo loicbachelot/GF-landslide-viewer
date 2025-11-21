@@ -52,3 +52,41 @@ export async function requestDownload(filters, { compress = false } = {}) {
 
     URL.revokeObjectURL(url);
 }
+
+/**
+ * Call the backend /count endpoint with the given filters.
+ * Filters must match the FastAPI Filters model.
+ *
+ * @param {object} filters - current filters (materials, movements, pga_min, etc.)
+ * @returns {Promise<number>} count of matching landslides
+ */
+export async function requestCount(filters) {
+    if (!filters || typeof filters !== 'object') {
+        throw new Error('Invalid filters object passed to requestCount.');
+    }
+
+    const res = await fetch('/api/count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(filters),
+    });
+
+    if (!res.ok) {
+        let message = `Count failed: ${res.status}`;
+        try {
+            const data = await res.json();
+            if (data?.detail) {
+                message += ` – ${data.detail}`;
+            }
+        } catch {
+            // ignore JSON parse error
+        }
+        throw new Error(message);
+    }
+
+    const data = await res.json();
+    if (typeof data?.count !== 'number') {
+        throw new Error('Count response missing numeric "count" field.');
+    }
+    return data.count;
+}
