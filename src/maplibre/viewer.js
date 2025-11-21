@@ -1,5 +1,8 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import { setSpatialSelection, clearSpatialSelection } from '../filter-panel/filterState.js';
 
 import {INITIAL_VIEW, styleIds, Z_RAW_POLYS, Z_RAW_POINTS, CFM_URLS} from './config.js';
 import {addBasemap} from './baselayer.js';
@@ -41,13 +44,15 @@ function bringLandslidesToFront(map) {
 }
 
 function popupHTML(props) {
-    const fields = ['id', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi', 'rainfall'];
+    const fields = ['viewer_id', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi', 'rainfall'];
     const rows = fields
         .filter(k => k in (props || {}))
         .map(k => `<div><b>${k}</b>: ${props[k]}</div>`)
         .join('');
     return `<div style="font:12px/1.35 sans-serif"><b>Landslide</b>${rows ? '<hr/>' + rows : ''}</div>`;
 }
+
+const styles=[{id:"gl-draw-polygon-fill",type:"fill",filter:["all",["==","$type","Polygon"],],paint:{"fill-color":["case",["==",["get","active"],"true"],"orange","blue",],"fill-opacity":.1}},{id:"gl-draw-lines",type:"line",filter:["any",["==","$type","LineString"],["==","$type","Polygon"],],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":["case",["==",["get","active"],"true"],"orange","blue",],"line-dasharray":["case",["==",["get","active"],"true"],["literal",[.2,2]],["literal",[.2,2]],],"line-width":2}},{id:"gl-draw-point-outer",type:"circle",filter:["all",["==","$type","Point"],["==","meta","feature"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],7,5,],"circle-color":"white"}},{id:"gl-draw-point-inner",type:"circle",filter:["all",["==","$type","Point"],["==","meta","feature"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],5,3,],"circle-color":["case",["==",["get","active"],"true"],"orange","blue",]}},{id:"gl-draw-vertex-outer",type:"circle",filter:["all",["==","$type","Point"],["==","meta","vertex"],["!=","mode","simple_select"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],7,5,],"circle-color":"white"}},{id:"gl-draw-vertex-inner",type:"circle",filter:["all",["==","$type","Point"],["==","meta","vertex"],["!=","mode","simple_select"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],5,3,],"circle-color":"orange"}},{id:"gl-draw-midpoint",type:"circle",filter:["all",["==","meta","midpoint"],],paint:{"circle-radius":3,"circle-color":"orange"}},];
 
 /** Create and return the MapLibre map. No filter/apply logic here. */
 export function startMapLibre() {
@@ -68,6 +73,7 @@ export function startMapLibre() {
     // Controls
     map.addControl(new maplibregl.NavigationControl({showCompass: true}), 'top-right');
     map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: 'metric'}));
+
 
     map.on('load', async () => {
         // =========== Initialize CFM and PGA overlay ===========
@@ -205,5 +211,65 @@ export function startMapLibre() {
         map.on('moveend', updateZoom);
     });
 
-    return map;
+    // --- Add MapboxDraw control, polygon + trash only ---
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        styles: styles
+    });
+
+    map.addControl(draw);
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!target) return;
+
+        // Draw button
+        if (target.id === 'spatial-draw-btn') {
+            console.log('[spatial] Draw button clicked');
+            draw.deleteAll();
+            clearSpatialSelection();
+
+            draw.changeMode('draw_polygon');
+            map.getCanvas().style.cursor = 'crosshair';
+            return;
+        }
+
+        // Validate button
+        if (target.id === 'spatial-validate-btn') {
+            console.log('[spatial] Validate button clicked');
+
+            const data = draw.getAll();
+            let geometry = null;
+
+            if (data.features.length > 0) {
+                const f = data.features[0];
+                if (f && f.geometry && f.geometry.type === 'Polygon') {
+                    geometry = f.geometry;
+                }
+            }
+
+            if (geometry) {
+                console.log('[spatial] Saving polygon selection', geometry);
+                setSpatialSelection(geometry);
+            } else {
+                console.log('[spatial] No polygon drawn, clearing selection');
+                clearSpatialSelection();
+            }
+
+            draw.changeMode('simple_select');
+            map.getCanvas().style.cursor = '';
+            return;
+        }
+
+        // Reset button
+        if (target.id === 'spatial-reset-btn') {
+            console.log('[spatial] Reset button clicked');
+            clearSpatialSelection();
+            draw.deleteAll();
+            draw.changeMode('simple_select');
+            map.getCanvas().style.cursor = '';
+        }
+    });
+
+    return map
 }
