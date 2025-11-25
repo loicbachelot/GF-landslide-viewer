@@ -234,8 +234,8 @@ export function initDownloadPanel({ container }) {
 
         try {
             await requestDownload(backendFilters, { compress });
-            setStatus('Download started.', 'success');
 
+            setStatus('Download started.', 'success');
             modalNoteEl.textContent = 'Download started. You can close this window when the file appears.';
             modalConfirm.textContent = 'Close';
             modalConfirm.disabled = false;
@@ -293,7 +293,16 @@ export function initDownloadPanel({ container }) {
         setStatus('Preparing file…', 'muted');
 
         try {
-            await requestDownload(backendFilters, { compress: false });
+            const { url, filename } = await requestDownload(backendFilters, { compress: false });
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || '';
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
             setStatus('Download started.', 'success');
         } catch (err) {
             console.error('[downloadPanel] download error', err);

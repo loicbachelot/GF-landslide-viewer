@@ -3,9 +3,13 @@ import json
 import tempfile
 import zipfile
 from typing import List, Optional, Tuple, Dict, Any
+from uuid import uuid4
 
 from dotenv import load_dotenv
-load_dotenv(".env.local")
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env.local")
 
 import psycopg2
 from psycopg2.extras import DictCursor
@@ -13,6 +17,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+import boto3
+from botocore.exceptions import ClientError
+
+# ---------- FastAPI app (local dev) ----------
 
 app = FastAPI()
 
@@ -30,18 +39,59 @@ app.add_middleware(
 )
 
 
-# ---- DB helper ----
+# ---------- DB helper ----------
+
+def _get_db_dsn_from_env() -> str:
+    """
+    Build a PostgreSQL DSN from env.
+
+    Priority:
+      1. DATABASE_URL (local dev)
+      2. PGHOST + PGDATABASE + PGUSER + password via:
+           - PGPASSWORD env, or
+           - DB_SECRET_ARN (Secrets Manager JSON with 'password')
+    """
+    dsn = os.getenv("DATABASE_URL")
+    print(dsn)
+    if dsn:
+        return dsn
+
+    host = os.getenv("PGHOST")
+    database = os.getenv("PGDATABASE")
+    user = os.getenv("PGUSER")
+
+    if not (host and database and user):
+        raise RuntimeError(
+            "Missing PGHOST / PGDATABASE / PGUSER env vars and no DATABASE_URL set."
+        )
+
+    password = os.getenv("PGPASSWORD")
+    if not password:
+        secret_arn = os.getenv("DB_SECRET_ARN")
+        if not secret_arn:
+            raise RuntimeError("Neither PGPASSWORD nor DB_SECRET_ARN is set.")
+        # Fetch password from Secrets Manager
+        sm = boto3.client("secretsmanager")
+        try:
+            resp = sm.get_secret_value(SecretId=secret_arn)
+            secret_str = resp.get("SecretString")
+            secret_dict = json.loads(secret_str)
+            password = secret_dict.get("password")
+        except ClientError as e:
+            raise RuntimeError(f"Failed to fetch DB secret: {e}")
+
+    # default port 5432
+    port = os.getenv("PGPORT", "5432")
+
+    return f"postgresql://{user}:{password}@{host}:{port}/{database}"
+
 
 def get_db_conn():
     """
     Very simple connection helper.
-    Expect DATABASE_URL in format:
-    postgres://user:pass@host:port/dbname
     """
-    dsn = os.getenv("DATABASE_URL")
-    print("DATABASE_URL =", dsn)  # debug
-    if not dsn:
-        raise RuntimeError("DATABASE_URL environment variable is not set")
+    dsn = _get_db_dsn_from_env()
+    print("Using DSN:", dsn.replace(password="***") if "password=" in dsn else dsn)
     return psycopg2.connect(dsn, cursor_factory=DictCursor)
 
 
@@ -79,6 +129,10 @@ class Filters(BaseModel):
 class DownloadRequest(BaseModel):
     filters: Filters
     compress: Optional[bool] = False
+
+class CountRequest(BaseModel):
+    filters: Filters
+
 
 
 # ---- Internal helpers ----
@@ -141,7 +195,56 @@ def _build_sql_params(filters: Filters, max_features: Optional[int] = None) -> D
     return params
 
 
-# ---- Core export function (reusable later in Lambda) ----
+# ---- Core DB logic ----
+
+def count_matching_filters(filters: Filters, max_features: int = 200_000) -> int:
+    _debug_log_filters("count_matching_filters", filters)
+    params = _build_sql_params(filters, max_features=max_features)
+
+    sql = """
+      SELECT COUNT(*) AS count
+      FROM landslide_v2.export_original_from_filters(
+          %(materials)s,
+          %(movements)s,
+          %(confidences)s,
+          %(pga_min)s,
+          %(pga_max)s,
+          %(pgv_min)s,
+          %(pgv_max)s,
+          %(psa03_min)s,
+          %(psa03_max)s,
+          %(mmi_min)s,
+          %(mmi_max)s,
+          %(tol_pga)s,
+          %(tol_pgv)s,
+          %(tol_psa03)s,
+          %(tol_mmi)s,
+          %(rain_min)s,
+          %(rain_max)s,
+          %(tol_rain)s,
+          CASE
+          WHEN %(selection_geojson)s IS NULL THEN NULL
+          ELSE ST_Transform(
+          ST_SetSRID(
+          ST_GeomFromGeoJSON(%(selection_geojson)s),
+          4326
+          ),
+          3857
+          )
+          END,
+          %(max_features)s
+          );
+    """
+
+    with get_db_conn() as conn, conn.cursor() as cur:
+        print("Executing COUNT(*) via export_original_from_filters...")
+        cur.execute(sql, params)
+        row = cur.fetchone()
+
+    count = row["count"]
+    print(f"count_matching_filters result: {count}")
+    return count
+
 
 def generate_geojson_export(
         filters: Filters,
@@ -239,7 +342,30 @@ def generate_geojson_export(
     return zip_path, "landslides.geojson.zip"
 
 
-# ---- FastAPI endpoints ----
+# ---- S3 helper for Lambda ----
+
+def upload_to_s3_and_presign(local_path: str, filename: str) -> str:
+    bucket = os.getenv("EXPORT_BUCKET")
+    if not bucket:
+        raise RuntimeError("EXPORT_BUCKET env var is not set")
+
+    s3 = boto3.client("s3")
+    key = f"exports/{uuid4()}/{filename}"
+
+    print(f"Uploading {local_path} to s3://{bucket}/{key}")
+    s3.upload_file(local_path, bucket, key)
+
+    # Presigned URL for download
+    url = s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket, "Key": key},
+        ExpiresIn=3600,  # 1 hour
+    )
+    print(f"Presigned URL: {url}")
+    return url
+
+
+# ---- FastAPI endpoints (local dev only) ----
 
 @app.post("/download")
 def download(req: DownloadRequest):
@@ -249,20 +375,13 @@ def download(req: DownloadRequest):
             compress=req.compress or False,
         )
     except psycopg2.Error as e:
-        # e.g. DB-side "Too many features" exception, or others
         msg = str(e)
         raise HTTPException(status_code=400, detail=f"Database error: {msg}")
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        # Log in real app
         raise HTTPException(status_code=500, detail=f"Export failed: {e}")
 
-    # For local testing we just return the file directly.
-    # In Lambda later, this is the part we replace with:
-    #   - upload to S3
-    #   - generate presigned URL
-    #   - return JSON { url: ... }
     return FileResponse(
         file_path,
         media_type="application/zip" if filename.endswith(".zip") else "application/geo+json",
@@ -271,63 +390,94 @@ def download(req: DownloadRequest):
 
 
 @app.post("/count")
-def count_landslides(filters: Filters):
-    """
-    Return how many features match the given filters,
-    using the same landslide_v2.export_original_from_filters(...) function
-    that the /download endpoint uses.
-    """
-    _debug_log_filters("/count", filters)
-
-    # For counting, you may want a "large enough" cap; keep in sync with /download.
-    params = _build_sql_params(filters, max_features=200_000)
-
-    sql = """
-          SELECT COUNT(*) AS count
-          FROM landslide_v2.export_original_from_filters(
-              %(materials)s,
-              %(movements)s,
-              %(confidences)s,
-              %(pga_min)s,
-              %(pga_max)s,
-              %(pgv_min)s,
-              %(pgv_max)s,
-              %(psa03_min)s,
-              %(psa03_max)s,
-              %(mmi_min)s,
-              %(mmi_max)s,
-              %(tol_pga)s,
-              %(tol_pgv)s,
-              %(tol_psa03)s,
-              %(tol_mmi)s,
-              %(rain_min)s,
-              %(rain_max)s,
-              %(tol_rain)s,
-              CASE
-              WHEN %(selection_geojson)s IS NULL THEN NULL
-              ELSE ST_Transform(
-              ST_SetSRID(
-              ST_GeomFromGeoJSON(%(selection_geojson)s),
-              4326
-              ),
-              3857
-              )
-              END,
-              %(max_features)s
-              ); \
-          """
-
+def count_landslides(req: CountRequest):
     try:
-        with get_db_conn() as conn, conn.cursor() as cur:
-            print("Executing COUNT(*) via export_original_from_filters...")
-            cur.execute(sql, params)
-            row = cur.fetchone()
-
-        count = row["count"]
-        print(f"/count result: {count}")
+        filters = req.filters
+        count = count_matching_filters(filters)
         return {"count": count}
-
     except psycopg2.Error as e:
         raise HTTPException(status_code=400, detail=f"Database error: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Count failed: {e}")
+
+
+# ---- Lambda handler (for API Gateway) ----
+
+ALLOWED_CORS_ORIGINS = set(origins)  # reuse same allowed origins
+
+
+def _lambda_response(status_code: int, body: Dict[str, Any], origin: Optional[str] = "*"):
+    headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": origin or "*",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "OPTIONS,POST",
+    }
+    return {
+        "statusCode": status_code,
+        "headers": headers,
+        "isBase64Encoded": False,
+        "body": json.dumps(body),
+    }
+
+
+def lambda_handler(event, context):
+    """
+    Single Lambda entrypoint for both /api/count and /api/download.
+
+    API Gateway (REST) + Lambda proxy integration will send events like:
+      - event["path"] -> "/api/count" or "/api/download"
+      - event["body"] -> JSON string
+    """
+
+    print("Lambda event:", json.dumps(event))
+
+    path = event.get("path", "")
+    try:
+        raw_body = event.get("body") or "{}"
+        body = json.loads(raw_body)
+    except json.JSONDecodeError:
+        return _lambda_response(400, {"error": "Invalid JSON in request body"})
+
+    # CORS: mirror origin if in allowed list, otherwise "*"
+    headers = event.get("headers") or {}
+    origin = headers.get("origin") or headers.get("Origin")
+    cors_origin = origin if origin in ALLOWED_CORS_ORIGINS else "*"
+
+    try:
+        if path.endswith("/count"):
+            # Allow either {filters: {...}} or {...} directly
+            if "filters" in body:
+                filters = Filters(**body["filters"])
+            else:
+                filters = Filters(**body)
+
+            count = count_matching_filters(filters)
+            return _lambda_response(200, {"count": count}, cors_origin)
+
+        elif path.endswith("/download"):
+            # Expect {filters: {...}, compress: bool}
+            req = DownloadRequest(**body)
+            file_path, filename = generate_geojson_export(
+                filters=req.filters,
+                compress=req.compress or False,
+            )
+            url = upload_to_s3_and_presign(file_path, filename)
+            return _lambda_response(
+                200,
+                {"url": url, "filename": filename},
+                cors_origin,
+            )
+
+        else:
+            return _lambda_response(404, {"error": f"Unknown path {path}"}, cors_origin)
+
+    except psycopg2.Error as e:
+        return _lambda_response(400, {"error": f"Database error: {e}"}, cors_origin)
+    except RuntimeError as e:
+        return _lambda_response(400, {"error": str(e)}, cors_origin)
+    except Exception as e:
+        # Don't leak full trace in prod, but log it
+        print("Unhandled error:", repr(e))
+        return _lambda_response(500, {"error": f"Internal server error: {e}"}, cors_origin)

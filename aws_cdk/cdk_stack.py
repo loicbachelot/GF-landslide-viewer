@@ -2,31 +2,69 @@ from aws_cdk import (
     Stack,
     Duration,
     RemovalPolicy,
+    Fn,
+    CfnOutput,
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_ecs as ecs,
     aws_ecs_patterns as ecs_patterns,
     aws_ecr as ecr,
-    aws_iam as iam,
     aws_s3 as s3,
     aws_cloudfront as cloudfront,
     aws_cloudfront_origins as origins,
-    aws_s3_deployment as s3_deployment,
-    aws_secretsmanager as secretsmanager,
+    aws_lambda as _lambda,
+    aws_apigateway as apigw,
 )
 from constructs import Construct
 
 
 class LandslideStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    """
+    Landslide viewer stack.
+
+    DEPLOY MODE: Set use_existing_vpc=False for standalone, True for shared VPC
+    """
+
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        use_existing_vpc: bool = False,
+        existing_vpc_id: str = None,
+        **kwargs
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # ---------- VPC ----------
-        vpc = ec2.Vpc(
-            self, "Vpc",
-            max_azs=2,
-            nat_gateways=1,
-        )
+        # ---------- VPC Setup (Standalone or Shared) ----------
+        if use_existing_vpc and existing_vpc_id:
+            # SHARED MODE: Use existing VPC
+            vpc = ec2.Vpc.from_lookup(
+                self, "ExistingVpc",
+                vpc_id=existing_vpc_id,
+            )
+
+            # Add S3 endpoint (safe to call even if exists)
+            vpc.add_gateway_endpoint(
+                "S3Endpoint",
+                service=ec2.GatewayVpcEndpointAwsService.S3,
+            )
+
+            print(f"Using existing VPC: {existing_vpc_id}")
+        else:
+            # STANDALONE MODE: Create own VPC with NAT
+            vpc = ec2.Vpc(
+                self, "LandslideVpc",
+                max_azs=2,
+                nat_gateways=1,
+            )
+
+            # Add S3 endpoint
+            vpc.add_gateway_endpoint(
+                "S3Endpoint",
+                service=ec2.GatewayVpcEndpointAwsService.S3,
+            )
+
+            print("Creating standalone VPC with NAT Gateway")
 
         # ---------- RDS Postgres ----------
         db_secret = rds.DatabaseSecret(
@@ -37,8 +75,8 @@ class LandslideStack(Stack):
         db_sg = ec2.SecurityGroup(
             self, "DbSecurityGroup",
             vpc=vpc,
-            description="Postgres ingress from ECS",
-            allow_all_outbound=True,
+            description="Postgres ingress from ECS and Lambda",
+            allow_all_outbound=False,
         )
 
         db = rds.DatabaseInstance(
@@ -52,44 +90,45 @@ class LandslideStack(Stack):
             ),
             credentials=rds.Credentials.from_secret(db_secret),
             multi_az=False,
-            allocated_storage=50,
-            max_allocated_storage=200,
+            allocated_storage=20,
+            max_allocated_storage=50,
             instance_type=ec2.InstanceType.of(
-                ec2.InstanceClass.BURSTABLE3, ec2.InstanceSize.SMALL
+                ec2.InstanceClass.BURSTABLE3,
+                ec2.InstanceSize.MICRO
             ),
             security_groups=[db_sg],
             removal_policy=RemovalPolicy.SNAPSHOT,
-            deletion_protection=True,
-            database_name="gis",  # or whatever you use
+            deletion_protection=False,
+            database_name="gis",
+            backup_retention=Duration.days(7),
         )
 
         # ---------- ECS Cluster ----------
         cluster = ecs.Cluster(
             self, "EcsCluster",
             vpc=vpc,
+            container_insights=False,
         )
 
-        # ECR repo you push Martin to
         martin_repo = ecr.Repository.from_repository_name(
-            self, "MartinRepo", "martin"  # name in ECR
+            self, "MartinRepo", "martin"
         )
 
         # ---------- Martin Fargate Service + ALB ----------
         martin_service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self, "MartinService",
             cluster=cluster,
-            cpu=512,
-            memory_limit_mib=1024,
+            cpu=256,
+            memory_limit_mib=512,
             desired_count=1,
             public_load_balancer=True,
             task_image_options=ecs_patterns.ApplicationLoadBalancedTaskImageOptions(
                 image=ecs.ContainerImage.from_ecr_repository(martin_repo, "latest"),
-                container_port=3000,  # whatever Martin listens on
+                container_port=3000,
                 environment={
                     "PGHOST": db.db_instance_endpoint_address,
                     "PGDATABASE": "gis",
                     "PGUSER": "postgres",
-                    # PGPASSWORD handled below via secret
                 },
                 secrets={
                     "PGPASSWORD": ecs.Secret.from_secrets_manager(
@@ -97,32 +136,141 @@ class LandslideStack(Stack):
                     )
                 },
             ),
+            health_check_grace_period=Duration.seconds(60),
         )
 
-        # Allow ECS tasks to reach Postgres
+        martin_service.target_group.configure_health_check(
+            path="/health",
+            interval=Duration.seconds(60),
+            timeout=Duration.seconds(30),
+            healthy_threshold_count=2,
+            unhealthy_threshold_count=3,
+        )
+
         db.connections.allow_default_port_from(
             martin_service.service,
             "Allow Martin ECS service to access Postgres"
         )
 
-        # ---------- Existing S3 bucket for Vite app ----------
+        # ---------- S3 bucket for downloads / exports ----------
+        export_bucket = s3.Bucket(
+            self, "LandslideExportBucket",
+            removal_policy=RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+            lifecycle_rules=[
+                s3.LifecycleRule(
+                    id="DeleteOldExports",
+                    expiration=Duration.days(7),
+                    enabled=True,
+                )
+            ],
+        )
+
+        # ---------- Lambda for /api/count and /api/download ----------
+        download_lambda_sg = ec2.SecurityGroup(
+            self, "DownloadLambdaSG",
+            vpc=vpc,
+            description="Security group for download Lambda",
+            allow_all_outbound=True,
+        )
+
+        db.connections.allow_default_port_from(
+            download_lambda_sg,
+            "Allow download Lambda to access Postgres"
+        )
+
+        download_lambda = _lambda.Function(
+            self, "DownloadApiLambda",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="main.lambda_handler",
+            code=_lambda.Code.from_asset("download_api"),
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(
+                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+            ),
+            security_groups=[download_lambda_sg],
+            timeout=Duration.minutes(5),
+            memory_size=512,
+            environment={
+                "PGHOST": db.db_instance_endpoint_address,
+                "PGDATABASE": "gis",
+                "PGUSER": "postgres",
+                "DB_SECRET_ARN": db_secret.secret_arn,
+                "EXPORT_BUCKET": export_bucket.bucket_name,
+            },
+        )
+
+        db_secret.grant_read(download_lambda)
+        export_bucket.grant_read_write(download_lambda)
+
+        # ---------- API Gateway ----------
+        download_api = apigw.RestApi(
+            self, "DownloadApi",
+            rest_api_name="LandslideDownloadApi",
+            deploy_options=apigw.StageOptions(
+                stage_name="prod",
+                throttling_rate_limit=50,
+                throttling_burst_limit=100,
+            ),
+        )
+
+        api_root = download_api.root.add_resource("api")
+
+        count_resource = api_root.add_resource("count")
+        count_resource.add_method(
+            "POST",
+            apigw.LambdaIntegration(download_lambda),
+            method_responses=[
+                apigw.MethodResponse(
+                    status_code="200",
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                    },
+                )
+            ],
+        )
+        count_resource.add_cors_preflight(
+            allow_origins=["*"],
+            allow_methods=["POST", "OPTIONS"],
+        )
+
+        download_resource = api_root.add_resource("download")
+        download_resource.add_method(
+            "POST",
+            apigw.LambdaIntegration(download_lambda),
+            method_responses=[
+                apigw.MethodResponse(
+                    status_code="200",
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                    },
+                )
+            ],
+        )
+        download_resource.add_cors_preflight(
+            allow_origins=["*"],
+            allow_methods=["POST", "OPTIONS"],
+        )
+
+        # ---------- S3 bucket for Vite app ----------
         site_bucket = s3.Bucket.from_bucket_name(
             self,
             "ExistingHostingBucket",
             "crescent-react-hosting",
         )
 
-        # ---------- CloudFront distribution ----------
-        # Default behavior: serve React app from S3 at /landslide-viewer
-        # Additional behavior: /tiles/* -> Martin ALB (vector tiles)
+        api_domain_name = Fn.select(2, Fn.split("/", download_api.url))
+
+        # ---------- CloudFront ----------
         distribution = cloudfront.Distribution(
             self, "LandslideViewerDist",
             default_behavior=cloudfront.BehaviorOptions(
                 origin=origins.S3Origin(
                     site_bucket,
-                    origin_path="/landslide-viewer",  # folder in the bucket
+                    origin_path="/landslide-viewer",
                 ),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
             ),
             additional_behaviors={
                 "/tiles/*": cloudfront.BehaviorOptions(
@@ -132,19 +280,58 @@ class LandslideStack(Stack):
                     ),
                     viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                     cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
+                    allowed_methods=cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+                    compress=True,
+                ),
+                "/api/*": cloudfront.BehaviorOptions(
+                    origin=origins.HttpOrigin(
+                        domain_name=api_domain_name,
+                        origin_path="/prod",
+                        protocol_policy=cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+                    ),
+                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
+                    allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
                     origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER,
-                )
+                ),
             },
+            price_class=cloudfront.PriceClass.PRICE_CLASS_100,
+            comment="Landslide Viewer - Research Project",
         )
 
-        # ---------- Deploy Vite dist/ to the subfolder ----------
-        # After running `npm run build` locally or in CI, this will upload ./dist
-        # to s3://crescent-react-hosting/landslide-viewer/
-        s3_deployment.BucketDeployment(
-            self, "DeployLandslideViewer",
-            sources=[s3_deployment.Source.asset("./dist")],
-            destination_bucket=site_bucket,
-            destination_key_prefix="landslide-viewer",
-            distribution=distribution,
-            distribution_paths=["/*"],
+        # ---------- Outputs ----------
+        CfnOutput(
+            self, "VpcMode",
+            value="Standalone VPC" if not use_existing_vpc else f"Shared VPC ({existing_vpc_id})",
+            description="VPC deployment mode",
+        )
+
+        CfnOutput(
+            self, "CloudFrontUrl",
+            value=f"https://{distribution.domain_name}",
+            description="Main application URL",
+        )
+
+        CfnOutput(
+            self, "MartinAlbUrl",
+            value=f"http://{martin_service.load_balancer.load_balancer_dns_name}",
+            description="Direct Martin ALB URL (for debugging)",
+        )
+
+        CfnOutput(
+            self, "ApiGatewayUrl",
+            value=download_api.url,
+            description="Direct API Gateway URL",
+        )
+
+        CfnOutput(
+            self, "DatabaseEndpoint",
+            value=db.db_instance_endpoint_address,
+            description="RDS Postgres endpoint",
+        )
+
+        CfnOutput(
+            self, "ExportBucketName",
+            value=export_bucket.bucket_name,
+            description="S3 bucket for data exports",
         )
