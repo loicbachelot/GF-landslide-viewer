@@ -56,6 +56,7 @@ let filtersPanel;
 function initFiltersPanel(map) {
     const lfc = window.LandslideFilterConfig;
     const cfg = adaptPanelConfig(lfc);
+    let currentMartinFilters = null;
 
     filtersPanel = new FiltersPanel(document.getElementById('filters-panel'), {
         categorical: cfg.categorical,
