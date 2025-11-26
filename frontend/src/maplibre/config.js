@@ -1,13 +1,13 @@
 // Martin base URL
-export const MARTIN_URL = import.meta.env.VITE_MARTIN_URL ?? 'http://localhost:3000';
+export const MARTIN_URL = import.meta.env.VITE_MARTIN_URL ?? `${window.location.origin}`;
 
 // Initial map view
 export const INITIAL_VIEW = { center: [-123.0, 44.0], zoom: 6 };
 
 // Endpoints (functions for clusters, tables for raw)
 export const sourceNames = {
-    polysFn:  'landslide_v2.ls_polygons_q',  // <-- NEW: unified polygons endpoint
-    pointsFn: 'landslide_v2.ls_points_q',    // <-- NEW: unified points endpoint
+    polysFn:  'ls_polygons_q',  // <-- NEW: unified polygons endpoint
+    pointsFn: 'ls_points_q',    // <-- NEW: unified points endpoint
 };
 
 // Vector layer ids *inside* the tiles (MVT layer names)

@@ -5,14 +5,19 @@ import zipfile
 from typing import List, Optional, Tuple, Dict, Any
 from uuid import uuid4
 
-from dotenv import load_dotenv
-from pathlib import Path
+import os
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env.local")
+    BASE_DIR = Path(__file__).resolve().parent
+    load_dotenv(BASE_DIR / ".env.local")
+except ImportError:
+    pass
 
-import psycopg2
-from psycopg2.extras import DictCursor
+
+import pg8000
+from pg8000.dbapi import DatabaseError
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,21 +46,12 @@ app.add_middleware(
 
 # ---------- DB helper ----------
 
-def _get_db_dsn_from_env() -> str:
+def _get_db_credentials_from_env() -> Dict[str, Any]:
     """
-    Build a PostgreSQL DSN from env.
+    Resolve DB connection params from env and Secrets Manager.
 
-    Priority:
-      1. DATABASE_URL (local dev)
-      2. PGHOST + PGDATABASE + PGUSER + password via:
-           - PGPASSWORD env, or
-           - DB_SECRET_ARN (Secrets Manager JSON with 'password')
+    Used by Lambda & FastAPI. Returns components instead of DSN.
     """
-    dsn = os.getenv("DATABASE_URL")
-    print(dsn)
-    if dsn:
-        return dsn
-
     host = os.getenv("PGHOST")
     database = os.getenv("PGDATABASE")
     user = os.getenv("PGUSER")
@@ -70,7 +66,6 @@ def _get_db_dsn_from_env() -> str:
         secret_arn = os.getenv("DB_SECRET_ARN")
         if not secret_arn:
             raise RuntimeError("Neither PGPASSWORD nor DB_SECRET_ARN is set.")
-        # Fetch password from Secrets Manager
         sm = boto3.client("secretsmanager")
         try:
             resp = sm.get_secret_value(SecretId=secret_arn)
@@ -80,19 +75,32 @@ def _get_db_dsn_from_env() -> str:
         except ClientError as e:
             raise RuntimeError(f"Failed to fetch DB secret: {e}")
 
-    # default port 5432
-    port = os.getenv("PGPORT", "5432")
-
-    return f"postgresql://{user}:{password}@{host}:{port}/{database}"
+    port = int(os.getenv("PGPORT", "5432"))
+    return {
+        "host": host,
+        "database": database,
+        "user": user,
+        "password": password,
+        "port": port,
+    }
 
 
 def get_db_conn():
     """
-    Very simple connection helper.
+    Connection helper using pg8000 (pure Python – Lambda friendly).
     """
-    dsn = _get_db_dsn_from_env()
-    print("Using DSN:", dsn.replace(password="***") if "password=" in dsn else dsn)
-    return psycopg2.connect(dsn, cursor_factory=DictCursor)
+    creds = _get_db_credentials_from_env()
+    print(
+        "Connecting to Postgres:",
+        f"{creds['user']}@{creds['host']}:{creds['port']}/{creds['database']}",
+    )
+    return pg8000.connect(
+        host=creds["host"],
+        database=creds["database"],
+        user=creds["user"],
+        password=creds["password"],
+        port=creds["port"],
+    )
 
 
 # ---- Request models ----
@@ -241,7 +249,7 @@ def count_matching_filters(filters: Filters, max_features: int = 200_000) -> int
         cur.execute(sql, params)
         row = cur.fetchone()
 
-    count = row["count"]
+    count = row[0]
     print(f"count_matching_filters result: {count}")
     return count
 
@@ -374,7 +382,7 @@ def download(req: DownloadRequest):
             filters=req.filters,
             compress=req.compress or False,
         )
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         msg = str(e)
         raise HTTPException(status_code=400, detail=f"Database error: {msg}")
     except RuntimeError as e:
@@ -395,8 +403,8 @@ def count_landslides(req: CountRequest):
         filters = req.filters
         count = count_matching_filters(filters)
         return {"count": count}
-    except psycopg2.Error as e:
-        raise HTTPException(status_code=400, detail=f"Database error: {e}")
+    except DatabaseError as e:
+        return _lambda_response(400, {"error": f"Database error: {e}"}, cors_origin)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Count failed: {e}")
 
@@ -473,7 +481,7 @@ def lambda_handler(event, context):
         else:
             return _lambda_response(404, {"error": f"Unknown path {path}"}, cors_origin)
 
-    except psycopg2.Error as e:
+    except DatabaseError as e:
         return _lambda_response(400, {"error": f"Database error: {e}"}, cors_origin)
     except RuntimeError as e:
         return _lambda_response(400, {"error": str(e)}, cors_origin)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import aws_cdk as cdk
 from landslide_stack import LandslideStack
 
@@ -13,8 +14,8 @@ LandslideStack(
     "LandslideStack",
     use_existing_vpc=False,  # flag for using or not the shared VPC
     env=cdk.Environment(
-        account="YOUR_ACCOUNT_ID",  # Replace with your AWS account ID
-        region="us-west-2",
+        account=os.environ.get('CDK_DEFAULT_ACCOUNT'),
+        region=os.environ.get('CDK_DEFAULT_REGION', 'us-west-2'),
     ),
 )
 

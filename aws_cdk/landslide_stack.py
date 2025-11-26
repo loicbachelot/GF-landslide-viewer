@@ -14,6 +14,7 @@ from aws_cdk import (
     aws_cloudfront_origins as origins,
     aws_lambda as _lambda,
     aws_apigateway as apigw,
+    aws_iam as iam,
 )
 from constructs import Construct
 
@@ -82,7 +83,7 @@ class LandslideStack(Stack):
         db = rds.DatabaseInstance(
             self, "Postgres",
             engine=rds.DatabaseInstanceEngine.postgres(
-                version=rds.PostgresEngineVersion.V16
+                version=rds.PostgresEngineVersion.VER_16_11
             ),
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(
@@ -94,7 +95,7 @@ class LandslideStack(Stack):
             max_allocated_storage=50,
             instance_type=ec2.InstanceType.of(
                 ec2.InstanceClass.BURSTABLE3,
-                ec2.InstanceSize.MICRO
+                ec2.InstanceSize.SMALL
             ),
             security_groups=[db_sg],
             removal_policy=RemovalPolicy.SNAPSHOT,
@@ -115,6 +116,16 @@ class LandslideStack(Stack):
         )
 
         # ---------- Martin Fargate Service + ALB ----------
+        password_dynamic_ref = (
+            f"{{{{resolve:secretsmanager:{db_secret.secret_arn}:SecretString:password}}}}"
+        )
+
+        # Full DATABASE_URL with *placeholder* that CloudFormation resolves at runtime
+        database_url = (
+            f"postgresql://postgres:{password_dynamic_ref}"
+            f"@{db.db_instance_endpoint_address}/gis?sslmode=require"
+        )
+
         martin_service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self, "MartinService",
             cluster=cluster,
@@ -126,14 +137,8 @@ class LandslideStack(Stack):
                 image=ecs.ContainerImage.from_ecr_repository(martin_repo, "latest"),
                 container_port=3000,
                 environment={
-                    "PGHOST": db.db_instance_endpoint_address,
-                    "PGDATABASE": "gis",
-                    "PGUSER": "postgres",
-                },
-                secrets={
-                    "PGPASSWORD": ecs.Secret.from_secrets_manager(
-                        db_secret, field="password"
-                    )
+                    "DATABASE_URL": database_url,
+                    "RUST_LOG": "info",
                 },
             ),
             health_check_grace_period=Duration.seconds(60),
@@ -182,8 +187,8 @@ class LandslideStack(Stack):
         download_lambda = _lambda.Function(
             self, "DownloadApiLambda",
             runtime=_lambda.Runtime.PYTHON_3_12,
-            handler="main.lambda_handler",
-            code=_lambda.Code.from_asset("download_api"),
+            handler="lambda_main.lambda_handler",
+            code=_lambda.Code.from_asset("../download_api"),
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(
                 subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
@@ -253,6 +258,7 @@ class LandslideStack(Stack):
         )
 
         # ---------- S3 bucket for Vite app ----------
+
         site_bucket = s3.Bucket.from_bucket_name(
             self,
             "ExistingHostingBucket",
@@ -262,41 +268,67 @@ class LandslideStack(Stack):
         api_domain_name = Fn.select(2, Fn.split("/", download_api.url))
 
         # ---------- CloudFront ----------
+
+        site_origin = origins.S3BucketOrigin.with_origin_access_control(
+            site_bucket,
+            origin_path="/landslide-viewer",
+        )
+
+        tiles_behavior = cloudfront.BehaviorOptions(
+            origin=origins.HttpOrigin(
+                domain_name=martin_service.load_balancer.load_balancer_dns_name,
+                protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+            ),
+            viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
+            origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER,
+            allowed_methods=cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+            compress=True,
+        )
+
+        api_behavior = cloudfront.BehaviorOptions(
+            origin=origins.HttpOrigin(
+                domain_name=api_domain_name,
+                origin_path="/prod",
+                protocol_policy=cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+            ),
+            viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
+            allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
+            compress=True,
+        )
+
         distribution = cloudfront.Distribution(
             self, "LandslideViewerDist",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3Origin(
-                    site_bucket,
-                    origin_path="/landslide-viewer",
-                ),
+                origin=site_origin,
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
+                allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
             ),
             additional_behaviors={
-                "/tiles/*": cloudfront.BehaviorOptions(
-                    origin=origins.HttpOrigin(
-                        domain_name=martin_service.load_balancer.load_balancer_dns_name,
-                        protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY,
-                    ),
-                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-                    cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
-                    allowed_methods=cloudfront.AllowedMethods.ALLOW_GET_HEAD,
-                    compress=True,
-                ),
-                "/api/*": cloudfront.BehaviorOptions(
-                    origin=origins.HttpOrigin(
-                        domain_name=api_domain_name,
-                        origin_path="/prod",
-                        protocol_policy=cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
-                    ),
-                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-                    cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
-                    allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
-                    origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER,
-                ),
+                "/ls_*": tiles_behavior,
+                "/api/*": api_behavior,
             },
             price_class=cloudfront.PriceClass.PRICE_CLASS_100,
             comment="Landslide Viewer - Research Project",
+        )
+
+        site_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                sid="AllowCloudFrontReadLandslideViewerFromCdkDist",
+                effect=iam.Effect.ALLOW,
+                actions=["s3:GetObject"],
+                principals=[iam.ServicePrincipal("cloudfront.amazonaws.com")],
+                resources=[
+                    f"arn:aws:s3:::{site_bucket.bucket_name}/landslide-viewer/*"
+                ],
+                conditions={
+                    "StringEquals": {
+                        "AWS:SourceArn": f"arn:aws:cloudfront::{self.account}:distribution/{distribution.distribution_id}"
+                    }
+                },
+            )
         )
 
         # ---------- Outputs ----------
