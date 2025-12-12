@@ -15,10 +15,14 @@ Features interactive visualization, intelligent filtering, vector-tile-based ren
 - Cascadia-bounded default view
 
 ### 📊 Advanced Filters
-- **Categorical:** Material, Movement, Confidence  
-- **Numerical:** PGA, PGV, rainfall ranges  
+
+Data have been aligned for all datasets using the following fields:
+- **Categorical:** Material, Movement, Confidence  (computed from original datasets)
+- **Numerical:** PGA, PGV, rainfall ranges  (Using USGS M9 scenario and 30-Year (1990-2019) Annual Average of DAYMET Precipitation)
 - Real-time updates reflected in tile requests  
 - Filter summary panel showing active constraints
+
+Detail of the preprocessing on the original data is available here: https://github.com/cascadiaquakes/cascadia-landslide-data
 
 ### 📤 Data Export (Serverless)
 - Fully asynchronous AWS-based pipeline
@@ -309,7 +313,7 @@ Handled entirely by CDK (API Gateway, Lambdas, SQS, DynamoDB, ECS, RDS).
 
 ## Credits
 
-**Developed by:** CRESCENT Dev Team  
+**Developed by:** CRESCENT Dev Team (Loïc, William and Amanda) based on the work of Prasaya Acharya
 **Funded by:** U.S. National Science Foundation  
 **Landslide Data:**  
 California Geological Survey (CGS)  
