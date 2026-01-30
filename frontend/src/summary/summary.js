@@ -17,7 +17,7 @@ export function showSelectedDetailsFromFeatureProps(props) {
     window.dispatchEvent(new CustomEvent('ls:selected', { detail: { gid } }));
 }
 
-const numericRanges = {
+export const numericRanges = {
     pga:   { elementId: 'pgaRange',   label: 'PGA (%g)',      unit: '%g',  tolerance: 0.1 },
     pgv:   { elementId: 'pgvRange',   label: 'PGV (cm/s)',    unit: 'cm/s',tolerance: 0.1 },
     psa03: { elementId: 'psa03Range', label: 'PSA 0.3s (%g)', unit: '%g',  tolerance: 0.1 },
@@ -101,4 +101,20 @@ function renderSelectedTable(obj) {
     });
 
     console.log('[summary] details rendered for gid:', obj.gid ?? obj.GID ?? obj.id ?? obj.viewer_id);
+}
+
+export function formatSummaryValue(key, value, { decimalsDefault = 2 } = {}) {
+    if (value == null || value === "") return "—";
+
+    const unit = numericRanges[key]?.unit || "";
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+        // you currently hard-round to 2 decimals everywhere in the table:
+        const rounded = Math.round(value * (10 ** decimalsDefault)) / (10 ** decimalsDefault);
+        const pretty = rounded.toString();
+        return unit ? `${pretty} ${unit}` : pretty;
+    }
+
+    // strings, booleans, etc
+    return String(value);
 }

@@ -14,7 +14,7 @@ import {
 
 import {addVectorSources, addPolygonLayers, addPointLayers} from './layers.js';
 
-import {showSelectedDetailsFromFeatureProps} from '../summary/summary.js';
+import {showSelectedDetailsFromFeatureProps, formatSummaryValue} from '../summary/summary.js';
 
 import {initFaultOverlay, initPgaOverlay, setFaultsVisible, setPgaVisible} from './overlay.js';
 
@@ -130,12 +130,18 @@ class BasemapControl {
     }
 }
 
-function popupHTML(props) {
+function popupHTML(props = {}) {
     const fields = ['viewer_id', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi', 'rainfall'];
+
     const rows = fields
-        .filter(k => k in (props || {}))
-        .map(k => `<div><b>${k}</b>: ${props[k]}</div>`)
+        .filter(k => k in props)
+        .map(k => {
+            const label = k.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
+            const val = formatSummaryValue(k, props[k], { decimalsDefault: 2 });
+            return `<div><b>${label}</b>: ${val}</div>`;
+        })
         .join('');
+
     return `<div style="font:12px/1.35 sans-serif"><b>Landslide</b>${rows ? '<hr/>' + rows : ''}</div>`;
 }
 
@@ -244,6 +250,7 @@ export function startMapLibre() {
     // Interactions: POLY CLUSTERS
     // =========================
     map.on('click', styleIds.polysCluster, e => {
+        if (isDrawing(draw)) return;
         const f = e.features?.[0];
         if (!f) return;
         map.easeTo({
@@ -257,6 +264,7 @@ export function startMapLibre() {
     // Interactions: RAW POLYGONS
     // =========================
     map.on('click', styleIds.polysFill, e => {
+        if (isDrawing(draw)) return;
         const f = e.features?.[0];
         if (!f) return;
         new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
@@ -269,6 +277,7 @@ export function startMapLibre() {
     // Interactions: POINT CLUSTERS
     // =========================
     map.on('click', styleIds.pointsCluster, e => {
+        if (isDrawing(draw)) return;
         const f = e.features?.[0];
         if (!f) return;
         map.easeTo({
@@ -282,6 +291,7 @@ export function startMapLibre() {
     // Interactions: RAW POINTS
     // =========================
     map.on('click', styleIds.pointsCircle, e => {
+        if (isDrawing(draw)) return;
         const f = e.features?.[0];
         if (!f) return;
         new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
@@ -308,6 +318,11 @@ export function startMapLibre() {
         displayControlsDefault: false,
         styles: styles
     });
+
+    function isDrawing(draw) {
+        const mode = draw.getMode();
+        return mode !== 'simple_select';
+    }
 
     map.addControl(draw);
 
