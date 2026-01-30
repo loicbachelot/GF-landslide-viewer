@@ -24,9 +24,15 @@
         </a>
     </div>
 
-    <div class="app-banner__title">Cascadia Landslide Viewer</div>
+    <div class="app-banner__title">Cascadia Ground-Failure Viewer</div>
 
     <div class="app-banner__right">v1 • demo</div>
+    <button class="navbar-toggler"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#aboutModal">
+        About
+    </button>
 </header>
 
 <!-- Split layout: filters | gutter | map -->
@@ -79,6 +85,7 @@
         </div>
     </section>
 </main>
+
 <!-- Download confirmation modal -->
 <div class="modal fade" id="downloadConfirmModal" tabindex="-1" aria-labelledby="downloadConfirmLabel">
     <div class="modal-dialog modal-dialog-scrollable">
@@ -128,6 +135,92 @@
         </div>
     </div>
 </div>
+
+<!-- About modal -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutLabel">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="aboutLabel">About this viewer</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="lead mb-3">
+                    This interactive map displays regional landslide inventories compiled from
+                    multiple geological surveys across Cascadia. The viewer provides consistent
+                    filtering, visualization, and download access across heterogeneous datasets.
+                </p>
+
+                <hr>
+
+                <!-- Dataset sections -->
+                <section class="mb-4">
+                    <h5>Washington – DNR Landslide Inventory</h5>
+                    <p class="small text-muted mb-1">
+                        Polygon-based mapped landslides derived from field mapping, lidar interpretation,
+                        and historical records.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Geometry: polygons</li>
+                        <li>Attributes: landslide type, confidence, activity, source mapping</li>
+                        <li>Coverage varies spatially with lidar availability</li>
+                    </ul>
+                </section>
+
+                <section class="mb-4">
+                    <h5>Oregon – DOGAMI Landslide Data</h5>
+                    <p class="small text-muted mb-1">
+                        Statewide landslide mapping combining detailed studies and reconnaissance mapping.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Geometry: points and polygons</li>
+                        <li>Attributes standardized for cross-state comparison</li>
+                        <li>Variable mapping density by region</li>
+                    </ul>
+                </section>
+
+                <section class="mb-4">
+                    <h5>California – Geological Survey Inventories</h5>
+                    <p class="small text-muted mb-1">
+                        Compiled landslide datasets representing multiple mapping campaigns and vintages.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Includes historic and recent failures</li>
+                        <li>Heterogeneous attribute completeness</li>
+                        <li>Primarily polygon geometries</li>
+                    </ul>
+                </section>
+
+                <section class="mb-4">
+                    <h5>Canada – Natural Resources Canada</h5>
+                    <p class="small text-muted mb-1">
+                        National-scale landslide mapping with variable resolution across British Columbia.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Geometry and attribution vary by source region</li>
+                        <li>Best used for regional-scale analysis</li>
+                    </ul>
+                </section>
+
+                <hr>
+
+                <p class="small text-muted mb-0">
+                    Note: Mapping completeness and attribute definitions vary by jurisdiction.
+                    Absence of mapped landslides does not imply absence of hazard.
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/nouislider@15.8.1/dist/nouislider.min.js"></script>
 <script type="module" src="/src/main.js"></script>

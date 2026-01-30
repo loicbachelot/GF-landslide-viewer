@@ -1,5 +1,7 @@
 // Martin base URL
 export const MARTIN_URL = import.meta.env.VITE_MARTIN_URL ?? `${window.location.origin}`;
+export const MARTIN_PREFIX = import.meta.env.VITE_MARTIN_PREFIX ?? "";
+
 
 // Initial map view
 export const INITIAL_VIEW = { center: [-123.0, 44.0], zoom: 6 };

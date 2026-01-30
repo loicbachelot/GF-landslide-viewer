@@ -5,7 +5,13 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { setSpatialSelection, clearSpatialSelection } from '../filter-panel/filterState.js';
 
 import {INITIAL_VIEW, styleIds, Z_RAW_POLYS, Z_RAW_POINTS, CFM_URLS} from './config.js';
-import {addBasemap} from './baselayer.js';
+import {
+    addBasemaps,
+    addLabelsOverlay,
+    listBasemaps,
+    createBasemapController,
+} from "./baselayer.js";
+
 import {addVectorSources, addPolygonLayers, addPointLayers} from './layers.js';
 
 import {showSelectedDetailsFromFeatureProps} from '../summary/summary.js';
@@ -20,7 +26,8 @@ function baseStyle() {
         sources: {},
         layers: []
     };
-    addBasemap(style);
+    addBasemaps(style);
+    addLabelsOverlay(style);
     addVectorSources(style);
     addPolygonLayers(style);
     addPointLayers(style);
@@ -40,6 +47,86 @@ function bringLandslidesToFront(map) {
 
     for (const id of lsTopOrder) {
         map.moveLayer(id); // no beforeId => move to top
+    }
+}
+
+// =========================
+// Basemap selector control
+// =========================
+class BasemapControl {
+    constructor(basemapCtl) {
+        this.basemapCtl = basemapCtl;
+    }
+
+    onAdd(map) {
+        this._map = map;
+
+        const container = document.createElement("div");
+        container.className = "maplibregl-ctrl maplibregl-ctrl-group";
+        container.style.background = "white";
+        container.style.padding = "8px 10px";
+        container.style.fontSize = "12px";
+        container.style.minWidth = "180px";
+
+        const title = document.createElement("div");
+        title.textContent = "Basemap";
+        title.style.fontWeight = "600";
+        title.style.marginBottom = "6px";
+
+        const select = document.createElement("select");
+        select.style.width = "100%";
+
+        for (const bm of listBasemaps()) {
+            const opt = document.createElement("option");
+            opt.value = bm.key;
+            opt.textContent = bm.label;
+            select.appendChild(opt);
+        }
+
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.gap = "6px";
+        row.style.marginTop = "8px";
+
+        const labelsCheck = document.createElement("input");
+        labelsCheck.type = "checkbox";
+
+        const labelsLabel = document.createElement("label");
+        labelsLabel.textContent = "Names";
+
+        row.appendChild(labelsCheck);
+        row.appendChild(labelsLabel);
+
+        container.appendChild(title);
+        container.appendChild(select);
+        container.appendChild(row);
+
+        // UI -> state
+        select.addEventListener("change", (e) => {
+            this.basemapCtl.setBasemap(e.target.value);
+        });
+        labelsCheck.addEventListener("change", (e) => {
+            this.basemapCtl.setLabelsEnabled(e.target.checked);
+        });
+
+        // state -> UI (this is the magic)
+        this._unsubscribe = this.basemapCtl.onChange((st) => {
+            select.value = st.basemapKey;
+            labelsCheck.checked = st.labelsOn;
+            // optional: disable toggle when basemap has labels (e.g., OSM)
+            labelsCheck.disabled = st.basemapHasLabels;
+            labelsLabel.style.opacity = st.basemapHasLabels ? "0.6" : "1";
+        });
+
+        this._container = container;
+        return container;
+    }
+
+    onRemove() {
+        if (this._unsubscribe) this._unsubscribe();
+        this._container.remove();
+        this._map = undefined;
     }
 }
 
@@ -63,6 +150,9 @@ export function startMapLibre() {
         document.body.appendChild(div);
     }
 
+    const basemapCtl = createBasemapController({ defaultBasemap: "osm" });
+
+
     const map = new maplibregl.Map({
         container: 'map',
         style: baseStyle(),
@@ -74,8 +164,8 @@ export function startMapLibre() {
     map.addControl(new maplibregl.NavigationControl({showCompass: true}), 'top-right');
     map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: 'metric'}));
 
-
     map.on('load', async () => {
+        basemapCtl.attach(map);
         // =========== Initialize CFM and PGA overlay ===========
         await initFaultOverlay(map, CFM_URLS, {initialVisibility: 'visible'});
         const PGA_URL = new URL('../resources/pga_contours.json', import.meta.url).href;
@@ -144,8 +234,10 @@ export function startMapLibre() {
                 this._map = undefined;
             }
         }
-
         map.addControl(new OverlayToggleControl(), 'top-left');
+
+        map.addControl(new BasemapControl(basemapCtl), 'top-left');
+
     });
 
     // =========================
