@@ -181,39 +181,38 @@ def count_matching_filters(filters_dict: Dict[str, Any], max_features: int = 200
     print(json.dumps(params, indent=2, default=str))
 
     sql = """
-      SELECT COUNT(*) AS count
-      FROM landslide_v2.export_original_from_filters(
-          %s,  -- materials
-          %s,  -- movements
-          %s,  -- confidences
-          %s,  -- pga_min
-          %s,  -- pga_max
-          %s,  -- pgv_min
-          %s,  -- pgv_max
-          %s,  -- psa03_min
-          %s,  -- psa03_max
-          %s,  -- mmi_min
-          %s,  -- mmi_max
-          %s,  -- tol_pga
-          %s,  -- tol_pgv
-          %s,  -- tol_psa03
-          %s,  -- tol_mmi
-          %s,  -- rain_min
-          %s,  -- rain_max
-          %s,  -- tol_rain
-          CASE
-          WHEN %s::text IS NULL THEN NULL::geometry
-          ELSE ST_Transform(
-              ST_SetSRID(
-                  ST_GeomFromGeoJSON(%s::text),
-                  4326
-              ),
-              3857
-          )
-          END,
-          %s   -- max_features
-      );
-    """
+          SELECT COUNT(*) AS count
+          FROM landslide_v2.lsviewer_filtered_ids(
+              %s, -- materials
+              %s, -- movements
+              %s, -- confidences
+              %s, -- pga_min
+              %s, -- pga_max
+              %s, -- pgv_min
+              %s, -- pgv_max
+              %s, -- psa03_min
+              %s, -- psa03_max
+              %s, -- mmi_min
+              %s, -- mmi_max
+              %s, -- tol_pga
+              %s, -- tol_pgv
+              %s, -- tol_psa03
+              %s, -- tol_mmi
+              %s, -- rain_min
+              %s, -- rain_max
+              %s, -- tol_rain
+              CASE
+                WHEN %s::text IS NULL THEN NULL ::geometry
+                ELSE ST_Transform(
+                    ST_SetSRID(
+                        ST_GeomFromGeoJSON(%s::text), 
+                        4326
+                    ), 
+                    3857
+                )
+              END
+          );
+        """
 
     selection_str = params["selection_geojson"]
     args = (
@@ -237,7 +236,6 @@ def count_matching_filters(filters_dict: Dict[str, Any], max_features: int = 200
         params["tol_rain"],
         selection_str,   # %s::text in WHEN
         selection_str,   # %s::text in ST_GeomFromGeoJSON
-        params["max_features"],
     )
 
     with get_db_conn() as conn, conn.cursor() as cur:
