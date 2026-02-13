@@ -263,11 +263,34 @@ export function startMapLibre() {
     // =========================
     // Interactions: RAW POLYGONS
     // =========================
-    map.on('click', styleIds.polysFill, e => {
+    let selectedPoly = null; // { source, sourceLayer, id }
+
+    map.on('click', styleIds.polysFill, (e) => {
         if (isDrawing(draw)) return;
+
         const f = e.features?.[0];
         if (!f) return;
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+
+        const key = {
+            source: f.source,
+            sourceLayer: f.sourceLayer,
+            id: f.id
+        };
+
+        // Clear previous
+        if (selectedPoly) {
+            map.setFeatureState(selectedPoly, { selected: false });
+        }
+
+        // Set new
+        map.setFeatureState(key, { selected: true });
+        selectedPoly = key;
+
+        new maplibregl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(popupHTML(f.properties || {}))
+            .addTo(map);
+
         showSelectedDetailsFromFeatureProps(f.properties || {});
     });
     map.on('mouseenter', styleIds.polysFill, () => map.getCanvas().style.cursor = 'pointer');
@@ -287,14 +310,40 @@ export function startMapLibre() {
     map.on('mouseenter', styleIds.pointsCluster, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', styleIds.pointsCluster, () => (map.getCanvas().style.cursor = ''));
 
+    // celear selected feature
+    map.on('click', (e) => {
+        const feats = map.queryRenderedFeatures(e.point, { layers: [styleIds.pointsCircle, styleIds.polysFill] });
+        if (feats.length) return;
+
+        if (selectedPoint) { map.setFeatureState(selectedPoint, { selected: false }); selectedPoint = null; }
+        if (selectedPoly)  { map.setFeatureState(selectedPoly,  { selected: false }); selectedPoly  = null; }
+    });
+
     // =========================
     // Interactions: RAW POINTS
     // =========================
-    map.on('click', styleIds.pointsCircle, e => {
+    let selectedPoint = null; // { source, sourceLayer, id }
+
+    map.on('click', styleIds.pointsCircle, (e) => {
         if (isDrawing(draw)) return;
+
         const f = e.features?.[0];
         if (!f) return;
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
+
+        const key = { source: f.source, sourceLayer: f.sourceLayer, id: f.id };
+
+        if (selectedPoint) {
+            map.setFeatureState(selectedPoint, { selected: false });
+        }
+
+        map.setFeatureState(key, { selected: true });
+        selectedPoint = key;
+
+        new maplibregl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(popupHTML(f.properties || {}))
+            .addTo(map);
+
         showSelectedDetailsFromFeatureProps(f.properties || {});
     });
     map.on('mouseenter', styleIds.pointsCircle, () => map.getCanvas().style.cursor = 'pointer');
@@ -332,7 +381,6 @@ export function startMapLibre() {
 
         // Draw button
         if (target.id === 'spatial-draw-btn') {
-            console.log('[spatial] Draw button clicked');
             draw.deleteAll();
             clearSpatialSelection();
 
@@ -343,7 +391,6 @@ export function startMapLibre() {
 
         // Validate button
         if (target.id === 'spatial-validate-btn') {
-            console.log('[spatial] Validate button clicked');
 
             const data = draw.getAll();
             let geometry = null;
@@ -356,10 +403,8 @@ export function startMapLibre() {
             }
 
             if (geometry) {
-                console.log('[spatial] Saving polygon selection', geometry);
                 setSpatialSelection(geometry);
             } else {
-                console.log('[spatial] No polygon drawn, clearing selection');
                 clearSpatialSelection();
             }
 
@@ -370,7 +415,6 @@ export function startMapLibre() {
 
         // Reset button
         if (target.id === 'spatial-reset-btn') {
-            console.log('[spatial] Reset button clicked');
             clearSpatialSelection();
             draw.deleteAll();
             draw.changeMode('simple_select');
