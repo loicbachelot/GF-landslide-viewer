@@ -5,6 +5,7 @@ import { FiltersPanel } from './filter-panel/FiltersPanel.js';
 import { applyLandslideFiltersFromObject } from './filter-panel/filters.js';
 import './filter-panel/landslide-filters-config.js';
 import { initSummaryPane } from './summary/summary.js';
+import { initDetailsModal } from './summary/detailsModal.js';
 import { initDownloadPanel } from './download/downloadPanel.js';
 import {setCurrentFilterSummary} from "./filter-panel/filterState.js";
 
@@ -158,6 +159,7 @@ const map = startMapLibre();
 map.once('load', () => {
     initFiltersPanel(map);
     initSplitter(map);
+    initDetailsModal();
     if (typeof initSummaryPane === 'function') initSummaryPane(map);
     initDownloadPanel({
         container: 'download-panel',

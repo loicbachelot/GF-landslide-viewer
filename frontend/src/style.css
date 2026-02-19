@@ -416,3 +416,16 @@ body.is-resizing {
 .maplibregl-ctrl-group label {
     user-select: none;
 }
+
+/* popup styling */
+.ls-popup-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.ls-popup-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 8px 0;
+}

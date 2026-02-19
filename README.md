@@ -142,7 +142,7 @@ GF-landslide-viewer/
 │       │   # Global styling for the viewer
 │       │
 │       ├── download/
-│       │   ├── api.js
+│       │   ├── download_api.js
 │       │   │   # Frontend wrapper for POST /download and GET /download/{jobId}
 │       │   └── downloadPanel.js
 │       │       # UI modal for download requests + polling workflow

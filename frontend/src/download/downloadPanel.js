@@ -1,4 +1,4 @@
-import { requestDownload, requestCount } from './api.js';
+import { requestDownload, requestCount } from '../api/download_api.js';
 import { getCurrentFilterSummary } from '../filter-panel/filterState.js';
 
 /**
