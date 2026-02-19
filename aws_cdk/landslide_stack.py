@@ -267,6 +267,38 @@ class LandslideStack(Stack):
             )
         )
 
+        # --------- Lambda for full summary of landslide ----------
+        details_lambda_sg = ec2.SecurityGroup(
+            self, "LandslideDetailsLambdaSG",
+            vpc=vpc,
+            description="Security group for gf details Lambda",
+            allow_all_outbound=True,
+        )
+
+        db.connections.allow_default_port_from(
+            details_lambda_sg,
+            "Allow gf details Lambda to access Postgres"
+        )
+
+        landslide_details_lambda = _lambda.Function(
+            self, "LandslideDetailsLambda",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="lambda_main.lambda_handler",
+            code=_lambda.Code.from_asset("../gf_details_api"),
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
+            security_groups=[details_lambda_sg],
+            timeout=Duration.seconds(10),
+            memory_size=256,
+            environment={
+                "PGHOST": db.db_instance_endpoint_address,
+                "PGDATABASE": "gis",
+                "PGUSER": "postgres",
+                "DB_SECRET_ARN": db_secret.secret_arn,
+            },
+        )
+        db_secret.grant_read(landslide_details_lambda)
+
         # ---------- API Gateway ----------
         download_api = apigw.RestApi(
             self, "DownloadApi",
@@ -348,6 +380,25 @@ class LandslideStack(Stack):
             ],
         )
 
+        # /api/landslide for fast summary
+        landslide_resource = api_root.add_resource("landslide")
+        landslide_resource.add_method(
+            "GET",
+            apigw.LambdaIntegration(landslide_details_lambda),
+            method_responses=[
+                apigw.MethodResponse(
+                    status_code="200",
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                    },
+                )
+            ],
+        )
+        landslide_resource.add_cors_preflight(
+            allow_origins=["*"],
+            allow_methods=["GET", "OPTIONS"],
+        )
+
         # ---------- S3 bucket for Vite app ----------
 
         site_bucket = s3.Bucket.from_bucket_name(
@@ -385,6 +436,7 @@ class LandslideStack(Stack):
             ),
             viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
+            origin_request_policy=cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
             allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
             compress=True,
         )
