@@ -1,5 +1,12 @@
 const NA_COLOR = "#9ca3af";
 
+// ---- name mapping if needed ---
+const TILE_FIELD_BY_MODE = {
+    rain: "rainfall",
+    // if needed later:
+    // psa03: "psa_0p3",
+};
+
 function hashStringToHue(str) {
     // Simple stable hash -> 0..359 hue
     let h = 2166136261;
@@ -32,7 +39,7 @@ function getNumericBounds(key) {
         pgv: {min: 0, max: 150},
         psa03: {min: 0, max: 300},
         mmi: {min: 1, max: 10},
-        rain: {min: 0, max: 5500},
+        rain: {min: 0, max: 3500},
     };
     return fallback[key] || {min: 0, max: 100};
 }
@@ -114,11 +121,6 @@ function renderNumericLegend(bodyEl, key, meta) {
     bodyEl.appendChild(container);
 }
 
-function getFeatureValueExpr(key) {
-    // Coalesce to empty string so 'match' doesn't explode on null
-    return ["to-string", ["coalesce", ["get", key], ""]];
-}
-
 function buildCategoricalColorExpr(modeKey, options) {
     const input = ["to-string", ["coalesce", ["get", modeKey], ""]];
 
@@ -161,7 +163,8 @@ function buildNumericColorExpr(modeKey) {
     const mid = min + (max - min) * 0.5;
 
     // numeric input, safe coercion
-    const v = ["to-number", ["coalesce", ["get", modeKey], min]];
+    const field = TILE_FIELD_BY_MODE[modeKey] || modeKey;
+    const v = ["to-number", ["coalesce", ["get", field], min]];
 
     // 3-stop ramp that matches your legend-ish vibe
     return [
@@ -448,7 +451,18 @@ export function initLegend({map, defaultMode, layerIds} = {}) {
 
     function setMode(modeKey) {
         const m = modes.find((x) => x.key === modeKey) || modes[0];
-        if (!m) return;
+        if (!m) {
+            console.warn(
+                "[legend] Failed to resolve legend mode.",
+                {
+                    requestedMode: modeKey,
+                    availableModes: modes.map(m => m.key),
+                    configCategoricalKeys: Object.keys(cfg.categorical || {}),
+                    configNumericKeys: Object.keys(cfg.numericRanges || {})
+                }
+            );
+            return;
+        }
 
         titleEl.textContent = m.title;
 
