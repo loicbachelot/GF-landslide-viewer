@@ -7,7 +7,9 @@ import './filter-panel/landslide-filters-config.js';
 import { initSummaryPane } from './summary/summary.js';
 import { initDetailsModal } from './summary/detailsModal.js';
 import { initDownloadPanel } from './download/downloadPanel.js';
+import { initLegend } from "./legend/legend.js";
 import {setCurrentFilterSummary} from "./filter-panel/filterState.js";
+import {styleIds} from "./maplibre/config.js";
 
 // ---- defaults ----
 const DEFAULT_NUMERIC_BOUNDS = {
@@ -160,6 +162,14 @@ map.once('load', () => {
     initFiltersPanel(map);
     initSplitter(map);
     initDetailsModal();
+    initLegend({
+        map,
+        defaultMode: "mmi",
+        layerIds: {
+            polysFill: styleIds.polysFill,
+            pointsCircle: styleIds.pointsCircle
+        }
+    });
     if (typeof initSummaryPane === 'function') initSummaryPane(map);
     initDownloadPanel({
         container: 'download-panel',

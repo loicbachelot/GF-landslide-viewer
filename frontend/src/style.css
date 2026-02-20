@@ -35,6 +35,8 @@ html, body {
     --lp-max: 60vw;
     --gutter-w: 4px;
     --app-header-h: 100px;
+    --primary: #0b4a53;
+    --primary-hover: #083b42;
 }
 
 
@@ -428,4 +430,435 @@ body.is-resizing {
     height: 1px;
     background: #e0e0e0;
     margin: 8px 0;
+}
+
+/* ===================== LEGEND + TOGGLE ===================== */
+#ls-legend .legend-panel {
+    position: relative; /* anchor settings panel */
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    background: #ffffff;
+    border-radius: 100px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+/* 2D legend container - Target the ID correctly */
+#ls-legend.footer-container {
+    position: fixed;
+    left: 50%;
+    bottom: 50px;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 1100;
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+}
+
+#ls-legend.is-dragged {
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    transform: none !important;
+}
+#ls-legend .legend-header-row {
+    cursor: grab;
+}
+#ls-legend .legend-header-row:active {
+    cursor: grabbing;
+}
+
+/* Hidden state - More specific selector */
+#ls-legend.footer-container.is-closed {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(20px);
+}
+
+/* Visible state - More specific selector */
+#ls-legend.footer-container.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Inner legend panel */
+#ls-legend .legend-panel {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    background: #ffffff;
+    border-radius: 100px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Title */
+#ls-legend .legend-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    padding-right: 12px;
+    border-right: 1px solid #eee;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Stack gradient on top, labels under */
+#ls-legend .legend-gradient-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Gradient bar */
+#ls-legend .legend-gradient {
+    width: 120px;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(
+            to right,
+            #fbbf24 0%,
+            #f97316 50%,
+            #dc2626 100%
+    );
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.10);
+}
+
+/* Labels UNDER gradient */
+#ls-legend .legend-labels {
+    width: 120px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.ls-legend-items {
+    display: grid;
+    grid-auto-flow: column;              /* fill down rows, then add new columns */
+    grid-template-rows: repeat(2, auto);  /* max 2 rows */
+    grid-auto-columns: minmax(120px, 1fr);
+
+    gap: 8px 12px;
+    margin-top: 10px;
+
+    /* show up to 4 columns before scrolling */
+    max-width: calc(4 * 120px + 3 * 12px);
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding-bottom: 6px;                /* room for scrollbar */
+    scroll-snap-type: x mandatory;       /* optional: nicer scrolling */
+    -webkit-overflow-scrolling: touch;   /* smoother on iOS */
+}
+
+/* Optional: make each item snap */
+.ls-legend-item {
+    scroll-snap-align: start;
+}
+
+/* Wide (non-compact): fall back to a normal list/grid */
+/* WIDE mode: vertical stack */
+#ls-legend.is-wide .legend-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+
+    border-radius: 18px;           /* less “pill”, more “panel” */
+    padding: 12px 14px;
+}
+
+/* Put title + cog on top, no right-border separator */
+#ls-legend.is-wide .legend-header-row {
+    width: 100%;
+    padding-right: 0;
+    border-right: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* Title can look a bit more like a heading in wide */
+#ls-legend.is-wide .legend-title {
+    border-right: none;
+    padding-right: 0;
+    font-size: 12px;
+}
+
+/* Category list becomes a vertical list */
+#ls-legend.is-wide .ls-legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    max-width: none;
+    overflow: auto;       /* vertical scroll if long */
+    max-height: 220px;    /* adjust to taste */
+    padding-bottom: 0;
+}
+
+/* Items: keep them tidy */
+#ls-legend.is-wide .ls-legend-item {
+    white-space: nowrap;
+}
+
+.ls-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-legend-swatch { width: 12px; height: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.18); }
+.ls-legend-select { width: 100%; }
+
+/* Mobile: start closed, lift higher */
+@media (max-width: 760px) {
+    #ls-legend.footer-container {
+        bottom: 70px;
+    }
+}
+
+/* ---------- LEGEND TOGGLE BUTTON (2D) ---------- */
+.btn-legend-toggle{
+    position: fixed;
+    right: 15px;
+    bottom: 165px;
+    z-index: 99999;
+    pointer-events: auto;
+
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(255,255,255,0.92);
+    color: #0e7490;
+    border: 1px solid rgba(14,116,144,0.20);
+    backdrop-filter: blur(12px);
+
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+
+    transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.btn-legend-toggle svg{
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: currentColor;
+    opacity: 0.95;
+    pointer-events: none;
+}
+
+.btn-legend-toggle:hover{
+    background: rgba(255,255,255,0.98);
+    border-color: rgba(14,116,144,0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+}
+
+.btn-legend-toggle:active{
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+}
+
+.btn-legend-toggle.is-active{
+    background: linear-gradient(135deg, #0e7490 0%, #0b4a53 100%);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.25);
+}
+
+/* ===================== legend SETTINGS PANEL ===================== */
+
+/* Legend header row with settings button */
+.legend-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 12px;
+    border-right: 1px solid #eee;
+}
+
+/* Settings gear button */
+.legend-settings-btn {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.legend-settings-btn:hover {
+    background: rgba(14, 116, 144, 0.1);
+    color: #0e7490;
+    transform: rotate(45deg);
+}
+
+.legend-settings-btn:active {
+    transform: rotate(45deg) scale(0.95);
+}
+
+/* Settings panel (slides up from legend) */
+#ls-legend-settings-panel {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 12px 16px;
+
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    min-width: 220px;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+    z-index: 10;
+}
+
+#ls-legend-settings-panel.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Settings header */
+.settings-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0b4a53;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Settings content */
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Radio options */
+.settings-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    font-size: 13px;
+    color: #334155;
+}
+
+.settings-option:hover {
+    background: rgba(14, 116, 144, 0.05);
+}
+
+.settings-option input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #0e7490;
+    cursor: pointer;
+}
+
+/* Custom range inputs (disabled by default) */
+.custom-range-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    opacity: 0.5;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.custom-range-inputs.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.range-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.range-input-group label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.range-input-group input {
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    transition: all 0.2s ease;
+}
+
+.range-input-group input:focus {
+    outline: none;
+    border-color: #0e7490;
+    box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.1);
+}
+
+/* Reset button */
+.btn-reset-auto {
+    padding: 8px 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-reset-auto:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 116, 144, 0.25);
+}
+
+.btn-reset-auto:active {
+    transform: scale(0.98);
+}
+
+#ls-legend-opacity {
+    width: 100%;
+    accent-color: #0e7490;
 }
