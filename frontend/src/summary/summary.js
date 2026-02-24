@@ -30,7 +30,6 @@ function renderSelectedTable(obj) {
     const table = document.getElementById('selected-table');
     const tbody = document.getElementById('selected-tbody');
     if (!tbody || !table || !empty) {
-        console.error('[summary] missing #selected-* nodes');
         return;
     }
 
@@ -100,7 +99,6 @@ function renderSelectedTable(obj) {
         addRow(k, v);
     });
 
-    console.log('[summary] details rendered for gid:', obj.gid ?? obj.GID ?? obj.id ?? obj.viewer_id);
 }
 
 export function formatSummaryValue(key, value, { decimalsDefault = 2 } = {}) {

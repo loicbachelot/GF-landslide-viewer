@@ -2,7 +2,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
-import { setSpatialSelection, clearSpatialSelection } from '../filter-panel/filterState.js';
+import {setSpatialSelection, clearSpatialSelection} from '../filter-panel/filterState.js';
 
 import {INITIAL_VIEW, styleIds, Z_RAW_POLYS, Z_RAW_POINTS, CFM_URLS} from './config.js';
 import {
@@ -131,21 +131,153 @@ class BasemapControl {
 }
 
 function popupHTML(props = {}) {
-    const fields = ['viewer_id', 'material', 'movement', 'confidence', 'pga', 'pgv', 'psa03', 'mmi', 'rainfall'];
+    const fields = [
+        'viewer_id', 'material', 'movement',
+        'confidence', 'pga', 'pgv', 'psa03', 'mmi', 'rainfall'
+    ];
 
     const rows = fields
         .filter(k => k in props)
         .map(k => {
-            const label = k.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
-            const val = formatSummaryValue(k, props[k], { decimalsDefault: 2 });
+            const label = k.replace(/_/g, ' ')
+                .replace(/\b\w/g, m => m.toUpperCase());
+            const val = formatSummaryValue(k, props[k], {decimalsDefault: 2});
             return `<div><b>${label}</b>: ${val}</div>`;
         })
         .join('');
 
-    return `<div style="font:12px/1.35 sans-serif"><b>Landslide</b>${rows ? '<hr/>' + rows : ''}</div>`;
+    return `
+      <div class="ls-popup">
+        <div class="ls-popup-title">Information</div>
+        <div class="ls-popup-divider"></div>
+
+        ${rows}
+        <div class="ls-popup-divider"></div>
+        <button class="btn btn-sm btn-primary" data-action="view-details">
+          View all details
+        </button>
+      </div>
+    `;
 }
 
-const styles=[{id:"gl-draw-polygon-fill",type:"fill",filter:["all",["==","$type","Polygon"],],paint:{"fill-color":["case",["==",["get","active"],"true"],"orange","blue",],"fill-opacity":.1}},{id:"gl-draw-lines",type:"line",filter:["any",["==","$type","LineString"],["==","$type","Polygon"],],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":["case",["==",["get","active"],"true"],"orange","blue",],"line-dasharray":["case",["==",["get","active"],"true"],["literal",[.2,2]],["literal",[.2,2]],],"line-width":2}},{id:"gl-draw-point-outer",type:"circle",filter:["all",["==","$type","Point"],["==","meta","feature"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],7,5,],"circle-color":"white"}},{id:"gl-draw-point-inner",type:"circle",filter:["all",["==","$type","Point"],["==","meta","feature"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],5,3,],"circle-color":["case",["==",["get","active"],"true"],"orange","blue",]}},{id:"gl-draw-vertex-outer",type:"circle",filter:["all",["==","$type","Point"],["==","meta","vertex"],["!=","mode","simple_select"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],7,5,],"circle-color":"white"}},{id:"gl-draw-vertex-inner",type:"circle",filter:["all",["==","$type","Point"],["==","meta","vertex"],["!=","mode","simple_select"],],paint:{"circle-radius":["case",["==",["get","active"],"true"],5,3,],"circle-color":"orange"}},{id:"gl-draw-midpoint",type:"circle",filter:["all",["==","meta","midpoint"],],paint:{"circle-radius":3,"circle-color":"orange"}},];
+function resolveViewerId(props = {}) {
+    return props.viewer_id ?? props.VIEWER_ID ?? props.gid ?? props.GID ?? props.id ?? null;
+}
+
+function resolveApiSource(feature, props = {}) {
+    // Preferred: you include it in tiles as a property
+    const s = props.source ?? props.SOURCE;
+    if (s) return s;
+
+    // Fallback: infer from sourceLayer naming
+    const sl = feature?.sourceLayer;
+    if (!sl) return null;
+
+    if (sl.startsWith('src_')) return sl;
+    const m = String(sl).match(/(src_[a-z0-9]+)/i);
+    return m ? m[1] : null;
+}
+
+function bindSelectablePopupLayer(map, {
+    layerId,
+    getSelectedRef,          // () => selectedKey
+    setSelectedRef,          // (keyOrNull) => void
+    popupHTML,               // (props, ctx) => string
+    onSelectProps,           // (props) => void  (e.g., showSelectedDetailsFromFeatureProps)
+    isDrawingFn,
+}) {
+    map.on('click', layerId, (e) => {
+        if (isDrawingFn?.()) return;
+
+        const f = e.features?.[0];
+        if (!f) return;
+
+        const key = {source: f.source, sourceLayer: f.sourceLayer, id: f.id};
+
+        // Clear previous selection for this layer group
+        const prev = getSelectedRef();
+        if (prev) map.setFeatureState(prev, {selected: false});
+
+        // Select new
+        map.setFeatureState(key, {selected: true});
+        setSelectedRef(key);
+
+        const props = f.properties || {};
+        const viewer_id = resolveViewerId(props);
+        const apiSource = resolveApiSource(f, props);
+
+        const popup = new maplibregl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(popupHTML(props, {source: apiSource, viewer_id}))
+            .addTo(map);
+
+        // Wire the button inside this popup instance
+        setTimeout(() => {
+            const btn = popup.getElement()?.querySelector('[data-action="view-details"]');
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                if (!apiSource || !viewer_id) {
+                    console.warn('[popup] missing source/viewer_id', {apiSource, viewer_id, props});
+                    return;
+                }
+                window.dispatchEvent(new CustomEvent('ls:view-details', {
+                    detail: {source: apiSource, viewer_id, tileProps: props}
+                }));
+            });
+        }, 0);
+
+        // Keep your fast summary pane behavior
+        onSelectProps?.(props);
+    });
+
+    map.on('mouseenter', layerId, () => (map.getCanvas().style.cursor = 'pointer'));
+    map.on('mouseleave', layerId, () => (map.getCanvas().style.cursor = ''));
+}
+
+const styles = [{
+    id: "gl-draw-polygon-fill",
+    type: "fill",
+    filter: ["all", ["==", "$type", "Polygon"],],
+    paint: {"fill-color": ["case", ["==", ["get", "active"], "true"], "orange", "blue",], "fill-opacity": .1}
+}, {
+    id: "gl-draw-lines",
+    type: "line",
+    filter: ["any", ["==", "$type", "LineString"], ["==", "$type", "Polygon"],],
+    layout: {"line-cap": "round", "line-join": "round"},
+    paint: {
+        "line-color": ["case", ["==", ["get", "active"], "true"], "orange", "blue",],
+        "line-dasharray": ["case", ["==", ["get", "active"], "true"], ["literal", [.2, 2]], ["literal", [.2, 2]],],
+        "line-width": 2
+    }
+}, {
+    id: "gl-draw-point-outer",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "feature"],],
+    paint: {"circle-radius": ["case", ["==", ["get", "active"], "true"], 7, 5,], "circle-color": "white"}
+}, {
+    id: "gl-draw-point-inner",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "feature"],],
+    paint: {
+        "circle-radius": ["case", ["==", ["get", "active"], "true"], 5, 3,],
+        "circle-color": ["case", ["==", ["get", "active"], "true"], "orange", "blue",]
+    }
+}, {
+    id: "gl-draw-vertex-outer",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"], ["!=", "mode", "simple_select"],],
+    paint: {"circle-radius": ["case", ["==", ["get", "active"], "true"], 7, 5,], "circle-color": "white"}
+}, {
+    id: "gl-draw-vertex-inner",
+    type: "circle",
+    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"], ["!=", "mode", "simple_select"],],
+    paint: {"circle-radius": ["case", ["==", ["get", "active"], "true"], 5, 3,], "circle-color": "orange"}
+}, {
+    id: "gl-draw-midpoint",
+    type: "circle",
+    filter: ["all", ["==", "meta", "midpoint"],],
+    paint: {"circle-radius": 3, "circle-color": "orange"}
+},];
 
 /** Create and return the MapLibre map. No filter/apply logic here. */
 export function startMapLibre() {
@@ -156,7 +288,7 @@ export function startMapLibre() {
         document.body.appendChild(div);
     }
 
-    const basemapCtl = createBasemapController({ defaultBasemap: "osm" });
+    const basemapCtl = createBasemapController({defaultBasemap: "osm"});
 
 
     const map = new maplibregl.Map({
@@ -240,11 +372,15 @@ export function startMapLibre() {
                 this._map = undefined;
             }
         }
+
         map.addControl(new OverlayToggleControl(), 'top-left');
 
         map.addControl(new BasemapControl(basemapCtl), 'top-left');
 
     });
+
+    let draw = null;
+    const isDrawingFn = () => isDrawing(draw);
 
     // =========================
     // Interactions: POLY CLUSTERS
@@ -263,15 +399,18 @@ export function startMapLibre() {
     // =========================
     // Interactions: RAW POLYGONS
     // =========================
-    map.on('click', styleIds.polysFill, e => {
-        if (isDrawing(draw)) return;
-        const f = e.features?.[0];
-        if (!f) return;
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
-        showSelectedDetailsFromFeatureProps(f.properties || {});
+    let selectedPoly = null; // { source, sourceLayer, id }
+
+    bindSelectablePopupLayer(map, {
+        layerId: styleIds.polysFill,
+        getSelectedRef: () => selectedPoly,
+        setSelectedRef: (k) => {
+            selectedPoly = k;
+        },
+        popupHTML,
+        onSelectProps: showSelectedDetailsFromFeatureProps,
+        isDrawingFn,
     });
-    map.on('mouseenter', styleIds.polysFill, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', styleIds.polysFill, () => (map.getCanvas().style.cursor = ''));
 
     // =========================
     // Interactions: POINT CLUSTERS
@@ -287,18 +426,36 @@ export function startMapLibre() {
     map.on('mouseenter', styleIds.pointsCluster, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', styleIds.pointsCluster, () => (map.getCanvas().style.cursor = ''));
 
+    // celear selected feature
+    map.on('click', (e) => {
+        const feats = map.queryRenderedFeatures(e.point, {layers: [styleIds.pointsCircle, styleIds.polysFill]});
+        if (feats.length) return;
+
+        if (selectedPoint) {
+            map.setFeatureState(selectedPoint, {selected: false});
+            selectedPoint = null;
+        }
+        if (selectedPoly) {
+            map.setFeatureState(selectedPoly, {selected: false});
+            selectedPoly = null;
+        }
+    });
+
     // =========================
     // Interactions: RAW POINTS
     // =========================
-    map.on('click', styleIds.pointsCircle, e => {
-        if (isDrawing(draw)) return;
-        const f = e.features?.[0];
-        if (!f) return;
-        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHTML(f.properties || {})).addTo(map);
-        showSelectedDetailsFromFeatureProps(f.properties || {});
+    let selectedPoint = null; // { source, sourceLayer, id }
+
+    bindSelectablePopupLayer(map, {
+        layerId: styleIds.pointsCircle,
+        getSelectedRef: () => selectedPoint,
+        setSelectedRef: (k) => {
+            selectedPoint = k;
+        },
+        popupHTML,
+        onSelectProps: showSelectedDetailsFromFeatureProps,
+        isDrawingFn,
     });
-    map.on('mouseenter', styleIds.pointsCircle, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', styleIds.pointsCircle, () => (map.getCanvas().style.cursor = ''));
 
     // Optional zoom indicator
     map.on('load', () => {
@@ -314,7 +471,7 @@ export function startMapLibre() {
     });
 
     // --- Add MapboxDraw control, polygon + trash only ---
-    const draw = new MapboxDraw({
+    draw = new MapboxDraw({
         displayControlsDefault: false,
         styles: styles
     });
@@ -332,7 +489,6 @@ export function startMapLibre() {
 
         // Draw button
         if (target.id === 'spatial-draw-btn') {
-            console.log('[spatial] Draw button clicked');
             draw.deleteAll();
             clearSpatialSelection();
 
@@ -343,7 +499,6 @@ export function startMapLibre() {
 
         // Validate button
         if (target.id === 'spatial-validate-btn') {
-            console.log('[spatial] Validate button clicked');
 
             const data = draw.getAll();
             let geometry = null;
@@ -356,10 +511,8 @@ export function startMapLibre() {
             }
 
             if (geometry) {
-                console.log('[spatial] Saving polygon selection', geometry);
                 setSpatialSelection(geometry);
             } else {
-                console.log('[spatial] No polygon drawn, clearing selection');
                 clearSpatialSelection();
             }
 
@@ -370,7 +523,6 @@ export function startMapLibre() {
 
         // Reset button
         if (target.id === 'spatial-reset-btn') {
-            console.log('[spatial] Reset button clicked');
             clearSpatialSelection();
             draw.deleteAll();
             draw.changeMode('simple_select');

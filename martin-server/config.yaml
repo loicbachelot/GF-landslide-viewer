@@ -13,5 +13,5 @@ postgres:
     functions:
       from_schemas:
         - landslide_v2
-      source_id_format: '{schema}.{function}'
+      source_id_format: '{function}'
 

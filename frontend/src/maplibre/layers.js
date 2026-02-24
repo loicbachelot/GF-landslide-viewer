@@ -14,7 +14,8 @@ export function addVectorSources(style) {
     style.sources.polys_raw = {
         type: 'vector',
         tiles: [`${MARTIN_URL}/${sourceNames.polysFn}/{z}/{x}/{y}?mode=raw`],
-        minzoom: Z_RAW_POLYS, maxzoom: 22
+        minzoom: Z_RAW_POLYS, maxzoom: 22,
+        promoteId: 'viewer_id'
     };
 
     // POINTS CLUSTERS (function)
@@ -27,7 +28,8 @@ export function addVectorSources(style) {
     style.sources.points_raw = {
         type: 'vector',
         tiles: [`${MARTIN_URL}/${sourceNames.pointsFn}/{z}/{x}/{y}?mode=raw`],
-        minzoom: Z_RAW_POINTS, maxzoom: 22
+        minzoom: Z_RAW_POINTS, maxzoom: 22,
+        promoteId: 'viewer_id'
     };
 }
 
@@ -92,11 +94,24 @@ export function addPolygonLayers(style) {
             id: styleIds.polysFill,
             type: 'fill',
             source: 'polys_raw',
-            'source-layer': sourceLayers.polys.raw, // "ls_polygons"
+            'source-layer': sourceLayers.polys.raw,
             minzoom: Z_RAW_POLYS,
             paint: {
-                'fill-color': 'rgba(120, 200, 255, 0.40)',
-                'fill-outline-color': 'rgba(30, 120, 190, 0.8)'
+                'fill-color': 'rgb(120, 200, 255)',
+
+                'fill-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    0.85,  // selected
+                    0.40   // default (same as your old rgba alpha)
+                ],
+
+                'fill-outline-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    'rgba(30, 120, 190, 1.0)',
+                    'rgba(30, 120, 190, 0.8)'
+                ]
             }
         },
         {
@@ -105,7 +120,20 @@ export function addPolygonLayers(style) {
             source: 'polys_raw',
             'source-layer': sourceLayers.polys.raw,
             minzoom: Z_RAW_POLYS,
-            paint: { 'line-color': 'rgba(46,111,244,0.11)', 'line-width': 1 }
+            paint: {
+                'line-color': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    'rgba(46,111,244,0.9)',
+                    'rgba(46,111,244,0.11)'
+                ],
+                'line-width': [
+                    'case',
+                    ['boolean', ['feature-state', 'selected'], false],
+                    3,
+                    1
+                ]
+            }
         }
     );
 }
@@ -172,23 +200,44 @@ export function addPointLayers(style) {
     });
 
     // RAW POINTS (high zooms) — neutral dots so fills/lines still read
+    const sel = ['case', ['boolean', ['feature-state', 'selected'], false], 1.45, 1.0];
+
     style.layers.push({
         id: styleIds.pointsCircle,
         type: 'circle',
         source: 'points_raw',
-        'source-layer': sourceLayers.points.raw, // "ls_points"
+        'source-layer': sourceLayers.points.raw,
         minzoom: Z_RAW_POINTS,
         paint: {
             'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
-                Z_RAW_POINTS, 4,
-                Z_RAW_POINTS + 2, 5.5,
-                22, 7
+                Z_RAW_POINTS,     ['*', 4,   sel],
+                Z_RAW_POINTS + 2, ['*', 5.5, sel],
+                22,               ['*', 7,   sel]
             ],
-            'circle-color': 'rgba(120, 200, 255, 0.80)',
-            'circle-opacity': 0.85,
-            'circle-stroke-color': '#124',
-            'circle-stroke-width': 0.75
+
+            'circle-color': 'rgb(120, 200, 255)',
+
+            'circle-opacity': [
+                'case',
+                ['boolean', ['feature-state', 'selected'], false],
+                1.0,
+                0.85
+            ],
+
+            'circle-stroke-color': [
+                'case',
+                ['boolean', ['feature-state', 'selected'], false],
+                'rgba(0,0,0,0.95)',
+                '#124'
+            ],
+
+            'circle-stroke-width': [
+                'case',
+                ['boolean', ['feature-state', 'selected'], false],
+                2.0,
+                0.75
+            ]
         }
     });
 }

@@ -83,8 +83,68 @@
                 </div>
             </div>
         </div>
+        <!-- Legend footer (collapsed/expanded) -->
+        <div class="footer-container" id="ls-legend">
+            <div class="panel legend-panel">
+                <div class="legend-header-row">
+                    <div class="legend-title" id="ls-legend-title">Material</div>
+
+                    <button class="legend-settings-btn" id="ls-legend-settings-btn" title="Legend settings">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body swaps between DISCRETE and CONTINUOUS -->
+                <div id="ls-legend-body">
+                    <!-- JS populates -->
+                </div>
+            </div>
+
+            <!-- Settings flyout -->
+            <div class="depth-settings-panel" id="ls-legend-settings-panel">
+                <div class="settings-header">Legend Settings</div>
+                <div class="settings-content">
+                    <div class="range-input-group" style="margin-bottom: 10px;">
+                        <label for="ls-legend-mode" style="font-size: 12px; opacity: 0.85;">Color by</label>
+                        <select id="ls-legend-mode" class="ls-legend-select">
+
+                        </select>
+                    </div>
+                    <div class="range-input-group" style="margin-top: 6px;">
+                        <label for="ls-legend-opacity" style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">
+                            Opacity
+                        </label>
+
+                        <input id="ls-legend-opacity" type="range" min="0" max="100" value="40" step="1" />
+
+                        <div style="display:flex; justify-content: space-between; font-size: 10px; color:#64748b; font-weight:600; line-height:1;">
+                            <span>0%</span>
+                            <span id="ls-legend-opacity-val">40%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                    <label class="settings-option">
+                        <input type="checkbox" id="ls-legend-compact" checked>
+                        <span>Compact legend</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating toggle button -->
+        <button class="btn-legend-toggle" id="ls-toggle-legend" type="button" title="legend" aria-label="legend">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="4" y="4" width="7" height="7" rx="1.6"></rect>
+                <rect x="13" y="4" width="7" height="7" rx="1.6"></rect>
+                <rect x="4" y="13" width="7" height="7" rx="1.6"></rect>
+                <rect x="13" y="13" width="7" height="7" rx="1.6"></rect>
+            </svg>
+        </button>
     </section>
 </main>
+
 
 <!-- Download confirmation modal -->
 <div class="modal fade" id="downloadConfirmModal" tabindex="-1" aria-labelledby="downloadConfirmLabel">
@@ -296,6 +356,30 @@
                     Close
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- detail modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalTitle">Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="detailsStatus" class="small text-muted mb-2"></div>
+
+                <div id="detailsError" class="alert alert-danger d-none"></div>
+
+                <table class="table table-sm">
+                    <tbody id="detailsTbody"></tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>
