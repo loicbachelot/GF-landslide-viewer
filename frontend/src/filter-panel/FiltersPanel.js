@@ -15,6 +15,42 @@ export class FiltersPanel {
         this._render();
     }
 
+    // for rendering the helper panels
+    _makeLabelHTML(label, helpText) {
+        const hasHelp = !!(helpText && String(helpText).trim().length);
+        const content = hasHelp ? String(helpText) : 'No description is configured for this field yet.';
+
+        const safe = content.replace(/"/g, "&quot;");
+
+        return `
+    <span class="d-inline-flex align-items-center gap-1">
+      <span>${label}</span>
+      <button type="button"
+              class="btn btn-sm btn-link p-0 ls-help"
+              aria-label="Help: ${label}"
+              data-bs-toggle="popover"
+              data-bs-trigger="focus"
+              data-bs-placement="right"
+              data-bs-html="false"
+              data-bs-content="${safe}">
+        ?
+      </button>
+    </span>
+  `;
+    }
+
+    _initHelpPopovers() {
+        const Popover = window.bootstrap?.Popover;
+        if (!Popover) return;
+
+        this._popovers?.forEach(p => p.dispose());
+        this._popovers = [];
+
+        this.mountEl.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+            this._popovers.push(new Popover(el));
+        });
+    }
+
     _render() {
         const wrap = document.createElement('div');
         wrap.className = 'filters card shadow-sm';
@@ -31,6 +67,10 @@ export class FiltersPanel {
 
         const acc = wrap.querySelector('#filtersAccordion');
 
+        console.log("FiltersPanel config:", this.config);
+        console.log("Numeric keys:", Object.keys(this.config.numeric || {}));
+        console.log("Example numeric cfg:", this.config.numeric?.pga);
+        console.log("Example categorical cfg:", this.config.categorical?.material);
         // Categorical
         if (this.config.categorical && Object.keys(this.config.categorical).length) {
             const content = this._renderCategoricalSection();
@@ -56,6 +96,9 @@ export class FiltersPanel {
             this.expandAll();            // <--- OPEN all accordions on Reset
             this.config.onReset?.();
         });
+
+        // helper tab
+        this._initHelpPopovers();
     }
 
     _acordionIdCounter = 0;
@@ -95,10 +138,10 @@ export class FiltersPanel {
 
         // If Bootstrap JS is present, create a Collapse instance (no auto toggle)
         const bs = (window.bootstrap && window.bootstrap.Collapse)
-            ? new window.bootstrap.Collapse(collapseEl, { toggle: false })
+            ? new window.bootstrap.Collapse(collapseEl, {toggle: false})
             : null;
 
-        this._sections[idBase] = { item, buttonEl, collapseEl, bs };
+        this._sections[idBase] = {item, buttonEl, collapseEl, bs};
 
         return item;
     }
@@ -107,24 +150,29 @@ export class FiltersPanel {
         const section = document.createElement('div');
         section.className = 'vstack gap-3';
 
-        for (const [key, {label, options}] of Object.entries(this.config.categorical)) {
+        for (const [key, { label, options, help }] of Object.entries(this.config.categorical)) {
             const group = document.createElement('div');
             group.className = 'mb-1';
             group.dataset.key = key;
-            group.innerHTML = `<label class="form-label fw-semibold">${label}</label>`;
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'form-label fw-semibold mb-1';
+            titleEl.innerHTML = this._makeLabelHTML(label, help); // use destructured help
+            group.appendChild(titleEl);
 
             const grid = document.createElement('div');
             grid.className = 'row row-cols-2 g-1';
+
             options.forEach((opt, i) => {
                 const col = document.createElement('div');
                 col.className = 'col';
                 const id = `${key}__${i}`;
                 col.innerHTML = `
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="${opt}" id="${id}">
-            <label class="form-check-label" style="font-size: 14px" for="${id}">${opt}</label>
-          </div>
-        `;
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="${opt.label ?? opt}" id="${id}">
+        <label class="form-check-label" style="font-size: 14px" for="${id}">${opt.label ?? opt}</label>
+      </div>
+    `;
                 grid.appendChild(col);
             });
 
@@ -140,14 +188,14 @@ export class FiltersPanel {
         this._noUi = this._noUi || {};
 
         for (const [key, cfg] of Object.entries(this.config.numeric)) {
-            const { label, min, max, step, initialMin = min, initialMax = max } = cfg;
+            const {label, min, max, step, initialMin = min, initialMax = max} = cfg;
 
             const group = document.createElement('div');
             group.className = 'mb-0';
             group.dataset.key = key;
             group.innerHTML = `
-        <label class="form-label fw-semibold" style="font-size: 14px">${label}</label>
-        <div id="ns_${key}" class="mb-2 slider-round"></div>
+<div class="form-label fw-semibold" style="font-size: 14px">${this._makeLabelHTML(label, cfg.help)}</div>
+               <div id="ns_${key}" class="mb-2 slider-round"></div>
         <div class="row gx-2">
           <div class="col">
             <input type="number" class="form-control form-control-sm"
@@ -169,9 +217,9 @@ export class FiltersPanel {
             (noUiSlider || window.noUiSlider).create(sliderEl, {
                 start: [initialMin, initialMax],
                 connect: true,
-                range: { min, max },
+                range: {min, max},
                 step,
-                format: { to: v => v, from: v => parseFloat(v) }
+                format: {to: v => v, from: v => parseFloat(v)}
             });
 
             const decimals = step < 1 ? (String(step).split('.')[1]?.length || 1) : 0;
@@ -191,7 +239,7 @@ export class FiltersPanel {
             numMin.addEventListener('change', syncFromBoxes);
             numMax.addEventListener('change', syncFromBoxes);
 
-            this._noUi[key] = { slider, cfg, numMin, numMax };
+            this._noUi[key] = {slider, cfg, numMin, numMax};
         }
 
         return section;
@@ -224,7 +272,7 @@ export class FiltersPanel {
     }
 
     getFilters() {
-        const out = { categorical: {}, numeric: {} };
+        const out = {categorical: {}, numeric: {}};
 
         for (const [key] of Object.entries(this.config.categorical || {})) {
             const group = this.mountEl.querySelector(`.accordion-body [data-key="${key}"]`);
@@ -234,10 +282,10 @@ export class FiltersPanel {
         }
 
         for (const [key, obj] of Object.entries(this._noUi || {})) {
-            const { slider, cfg } = obj;
+            const {slider, cfg} = obj;
             const [lo, hi] = slider.get().map(parseFloat);
             const isFull = lo <= cfg.min && hi >= cfg.max;
-            if (!isFull) out.numeric[key] = { min: lo, max: hi };
+            if (!isFull) out.numeric[key] = {min: lo, max: hi};
         }
 
         return out;
@@ -248,7 +296,7 @@ export class FiltersPanel {
         this.mountEl.querySelectorAll('.form-check-input').forEach(cb => (cb.checked = false));
         // numeric -> back to full extent
         for (const [key, obj] of Object.entries(this._noUi || {})) {
-            const { slider, cfg } = obj;
+            const {slider, cfg} = obj;
             slider.set([cfg.min, cfg.max]);
         }
         queueMicrotask(() => {

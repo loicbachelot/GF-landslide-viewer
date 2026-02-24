@@ -21,18 +21,54 @@ const DEFAULT_NUMERIC_BOUNDS = {
 };
 
 function adaptPanelConfig(lfc) {
+    const cat = lfc?.categorical || {};
+    const num = lfc?.numericRanges || {};
+
     return {
         categorical: {
-            material:   { label: lfc.categorical.material.summaryLabel,   options: lfc.categorical.material.options.map(o => o.label) },
-            movement:   { label: lfc.categorical.movement.summaryLabel,   options: lfc.categorical.movement.options.map(o => o.label) },
-            confidence: { label: lfc.categorical.confidence.summaryLabel, options: lfc.categorical.confidence.options.map(o => o.label) }
+            material: {
+                label: cat.material?.summaryLabel ?? "Material",
+                options: (cat.material?.options ?? []).map(o => o.label ?? o),
+                help: cat.material?.help
+            },
+            movement: {
+                label: cat.movement?.summaryLabel ?? "Movement",
+                options: (cat.movement?.options ?? []).map(o => o.label ?? o),
+                help: cat.movement?.help
+            },
+            confidence: {
+                label: cat.confidence?.summaryLabel ?? "Confidence",
+                options: (cat.confidence?.options ?? []).map(o => o.label ?? o),
+                help: cat.confidence?.help
+            }
         },
+
         numeric: {
-            pga:   { label: lfc.numericRanges.pga.label,   ...DEFAULT_NUMERIC_BOUNDS.pga   },
-            pgv:   { label: lfc.numericRanges.pgv.label,   ...DEFAULT_NUMERIC_BOUNDS.pgv   },
-            psa03: { label: lfc.numericRanges.psa03.label, ...DEFAULT_NUMERIC_BOUNDS.psa03 },
-            mmi:   { label: lfc.numericRanges.mmi.label,   ...DEFAULT_NUMERIC_BOUNDS.mmi   },
-            rain:  { label: lfc.numericRanges.rain.label,  ...DEFAULT_NUMERIC_BOUNDS.rain  },
+            pga: {
+                label: num.pga?.label ?? "PGA",
+                help: num.pga?.help,
+                ...DEFAULT_NUMERIC_BOUNDS.pga
+            },
+            pgv: {
+                label: num.pgv?.label ?? "PGV",
+                help: num.pgv?.help,
+                ...DEFAULT_NUMERIC_BOUNDS.pgv
+            },
+            psa03: {
+                label: num.psa03?.label ?? "PSA 0.3s",
+                help: num.psa03?.help,
+                ...DEFAULT_NUMERIC_BOUNDS.psa03
+            },
+            mmi: {
+                label: num.mmi?.label ?? "MMI",
+                help: num.mmi?.help,
+                ...DEFAULT_NUMERIC_BOUNDS.mmi
+            },
+            rain: {
+                label: num.rain?.label ?? "Annual rain (mm)",
+                help: num.rain?.help,
+                ...DEFAULT_NUMERIC_BOUNDS.rain
+            }
         }
     };
 }
