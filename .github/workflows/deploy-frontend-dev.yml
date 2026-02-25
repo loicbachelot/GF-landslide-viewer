@@ -1,0 +1,75 @@
+name: Deploy Frontend (Dev)
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "frontend/**"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-frontend-dev
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-west-2
+  S3_BUCKET: crescent-react-hosting
+  S3_PREFIX: landslide-viewer/dev
+  CF_DISTRIBUTION_ID: E1GKP873FE1A6V
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend (dev)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::818214664804:role/GitHubActionsDeployRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-deploy-frontend-dev
+
+      - name: Sync to S3 (dev)
+        run: |
+          echo "Deploying to s3://$S3_BUCKET/$S3_PREFIX/"
+          aws s3 sync frontend/dist/ "s3://$S3_BUCKET/$S3_PREFIX/" \
+            --delete \
+            --cache-control "no-cache, no-store, must-revalidate"
+
+      - name: Invalidate CloudFront cache (dev)
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "/dev/*"
+          echo "Dev CloudFront invalidation submitted."
+
+      - name: Smoke test
+        run: |
+          echo "Waiting 15s for invalidation to propagate..."
+          sleep 15
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://ground-failure.cascadiaquakes.org/dev/index.html)
+          echo "Dev HTTP status: $HTTP_CODE"
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::warning::Dev smoke test returned HTTP $HTTP_CODE (may need initial deploy)"
+          else
+            echo "Dev smoke test passed."
+          fi
