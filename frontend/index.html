@@ -25,7 +25,7 @@
     <div class="header-center">Cascadia Ground-Failure Viewer</div>
 
     <div class="header-right">
-        <span class="version-text">v1 • demo</span>
+        
         <button class="btn-glass"
                 type="button"
                 data-bs-toggle="modal"
@@ -36,7 +36,7 @@
 </header>
 
 <!-- Split layout: filters | gutter | map -->
-<main class="app-main">
+<main class="app-main floating-layout">
     <!-- LEFT PANEL (filters + summary + details) -->
     <aside id="left-panel" class="lp" aria-label="Left panel">
         <div id="lp-content" class="lp-content">
@@ -72,6 +72,11 @@
     <!-- MAP -->
     <section id="map-wrapper" class="position-relative">
         <div id="map"></div>
+
+    <!-- Coordinates display -->
+    <div id="coord-box" class="coord-box">
+        ---, ---
+    </div>
 
         <!-- Bootstrap loading overlay -->
         <div id="map-loading"
@@ -199,7 +204,7 @@
 
 <!-- About modal -->
 <div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutLabel">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="aboutLabel">About this viewer</h4>

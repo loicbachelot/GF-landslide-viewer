@@ -1,0 +1,27 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::818214664804:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                    "token.actions.githubusercontent.com:sub": [
+                        "repo:cascadiaquakes/v-v_dashboard:ref:refs/heads/ci/test",
+                        "repo:cascadiaquakes/v-v_dashboard:ref:refs/heads/main",
+                        "repo:cascadiaquakes/cascadia-earthquake-viewer:ref:refs/heads/main",
+                        "repo:cascadiaquakes/cascadia-earthquake-viewer:ref:refs/heads/dev",
+                        "repo:cascadiaquakes/GF-landslide-viewer:ref:refs/heads/main",
+                        "repo:cascadiaquakes/GF-landslide-viewer:ref:refs/heads/dev"
+                    ]
+                }
+            }
+        }
+    ]
+}

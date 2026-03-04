@@ -872,3 +872,812 @@ body.is-resizing {
     width: 100%;
     accent-color: #0e7490;
 }
+
+
+
+/* ================================= */
+/* Sidebar layout*/
+/* ================================= */
+
+.floating-layout {
+    position: absolute;
+    inset: var(--app-header-h) 0 0 0;
+}
+
+/* remove split grid */
+.floating-layout.app-main {
+    display: block;
+}
+
+/* hide gutter */
+.floating-layout #split-gutter {
+    display: none;
+}
+
+/* map fills screen */
+.floating-layout #map-wrapper {
+    position: absolute;
+    inset: 0;
+}
+
+/* floating sidebar */
+.floating-layout #left-panel {
+    position: absolute;
+
+    top: 20px;
+    left: 20px;
+    bottom: 20px;
+
+    width: 340px;
+
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 18px 45px rgba(0,0,0,0.18),
+        0 3px 12px rgba(0,0,0,0.08);
+
+    border: 1px solid rgba(0,0,0,0.06);
+
+    overflow: auto;
+
+    z-index: 20;
+}
+
+/* scrollbar */
+#left-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+#left-panel::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
+
+/* =========================================================
+   FLOATING SIDEBAR LAYOUT
+   ========================================================= */
+
+
+.app-main.floating-layout {
+  position: absolute !important;
+  inset: var(--app-header-h) 0 0 0 !important;
+  display: block !important;          
+  min-height: 0 !important;
+}
+
+
+.app-main.floating-layout #map-wrapper {
+  position: absolute !important;
+  inset: 0 !important;
+  min-width: 0 !important;
+  padding-left: 0 !important;
+}
+
+
+.app-main.floating-layout #map {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hide the splitter */
+.app-main.floating-layout #split-gutter {
+  display: none !important;
+}
+
+/* Float the left panel over the map */
+.app-main.floating-layout #left-panel {
+  position: absolute !important;
+  top: 16px !important;
+  left: 16px !important;
+  bottom: 16px !important;
+
+  width: min(360px, calc(100vw - 32px)) !important;
+  max-width: min(420px, calc(100vw - 32px)) !important;
+  min-width: 280px !important;
+
+  z-index: 2000 !important;
+  overflow: auto !important;
+
+  /*  panel ux */
+  background: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 18px !important;
+
+  box-shadow:
+    0 14px 40px rgba(0,0,0,0.18),
+    0 2px 10px rgba(0,0,0,0.08) !important;
+}
+
+/*reduce panel padding */
+.app-main.floating-layout #left-panel {
+  padding: 12px !important;
+}
+
+
+/* =========================
+   MAP CONTROLS
+   ========================= */
+
+.maplibregl-ctrl {
+  z-index: 3000 !important;
+}
+
+/* faults + basemap control */
+.maplibregl-ctrl-top-left {
+  top: 15px !important;
+  left: 380px !important;
+}
+
+/* zoom buttons */
+.maplibregl-ctrl-top-right {
+  top: calc(var(--app-header-h) + 10px) !important;
+  right: 10px !important;
+}
+
+/* scale bar */
+.maplibregl-ctrl-bottom-left {
+  left: 380px !important;
+  bottom: 12px !important;
+}
+
+/* zoom text */
+.zoom-box {
+  left: 396px !important;
+  bottom: 50px !important;
+  z-index: 2500;
+}
+
+/* legend */
+.legend-container {
+  left: 520px;
+}
+
+/* control styling */
+.maplibregl-ctrl-group {
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+
+
+/* MAIN PANEL TITLES
+---------------------------------------------------- */
+#left-panel .card-header,
+#left-panel .panel-header,
+#left-panel .card-title,
+#left-panel .section-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+
+/* SECTION HEADERS
+   (Categories, Numerical Ranges)
+---------------------------------------------------- */
+#left-panel .accordion-button,
+#left-panel .filter-header {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  color: #64748b !important;
+
+  background: transparent !important;
+  border: none !important;
+}
+
+
+/* SUBSECTION LABELS
+   (Material, Movement, Confidence)
+---------------------------------------------------- */
+#left-panel label,
+#left-panel .form-label {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  text-transform: uppercase !important;
+  color: #1f2937 !important;
+}
+
+
+/* REMOVE BLUE BACKGROUND FROM DROPDOWN BARS */
+#left-panel .accordion-button:not(.collapsed) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+
+#left-panel .accordion-button::after {
+  transform: scale(0.8);
+  opacity: 0.6;
+}
+
+
+/* give each accordion item its own box */
+#left-panel .accordion-item {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+/* remove bootstrap default borders */
+#left-panel .accordion-item {
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* section header spacing */
+#left-panel .accordion-button {
+  padding: 14px 16px;
+}
+
+/* section body spacing */
+#left-panel .accordion-body {
+  padding: 12px 16px 16px 16px;
+}
+
+
+#left-panel .accordion-button::after {
+  width: 10px;
+  height: 10px;
+  background-size: 10px;
+  opacity: 0.6;
+  transform: scale(0.8);
+}
+
+/* collapsed arrow */
+#left-panel .accordion-button.collapsed::after {
+  transform: rotate(-90deg) scale(0.8);
+}
+
+/* open arrow */
+#left-panel .accordion-button:not(.collapsed)::after {
+  transform: rotate(0deg) scale(0.8);
+}
+
+
+/* =====================================
+   SEPARATE LOWER PANELS INTO CARDS
+   ===================================== */
+
+#download-panel,
+#selected-panel {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  margin-top: 14px;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+#left-panel .card {
+  margin-bottom: 14px;
+}
+
+
+/* =====================================
+   ARROW BEHAVIOR
+   ===================================== */
+
+/* default arrow (collapsed) */
+#left-panel .accordion-button::after {
+  transform: rotate(-90deg);   /* points right */
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+/* expanded arrow */
+#left-panel .accordion-button:not(.collapsed)::after {
+  transform: rotate(0deg);     /* points down */
+}
+
+#left-panel .accordion-button::after {
+  background-size: 10px;
+  width: 10px;
+  height: 10px;
+}
+
+
+/* Move arrow to left side*/
+#left-panel .accordion-button {
+    flex-direction: row-reverse !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+}
+
+#left-panel .accordion-button::after {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+/* =========================
+   ACCORDION ARROWS
+   ========================= */
+
+/* Put caret befpre  text */
+#left-panel .accordion-button{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  color:#64748b;
+
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+
+/* arrow element (Bootstrap uses ::after) */
+#left-panel .accordion-button::after{
+  order:-1;                 /* move arrow to left */
+  margin:0 6px 0 0 !important;
+  width:10px;
+  height:10px;
+  background-size:10px;
+  opacity:.65;
+  transition:transform .18s ease;
+}
+
+/* collapsed = RIGHT, open = DOWN */
+#left-panel .accordion-button.collapsed::after{ transform:rotate(-90deg); }
+#left-panel .accordion-button:not(.collapsed)::after{ transform:rotate(0deg); }
+
+
+/* =========================
+   FILTER ACTIONS
+   ========================= */
+
+/* Find the action row: last row of buttons inside the Filters card */
+#left-panel #filters-panel .card-body > .d-flex:last-child{
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+  gap:12px !important;
+  margin-top:12px !important;
+}
+
+/* Reset = text button (left) */
+#left-panel #filters-panel .card-body > .d-flex:last-child .btn:not(.btn-primary){
+  background:transparent !important;
+  border:none !important;
+  padding:10px 6px !important;
+  color:#64748b !important;
+  font-weight:600 !important;
+  text-decoration:none !important;
+}
+
+#left-panel #filters-panel .card-body > .d-flex:last-child .btn:not(.btn-primary):hover{
+  text-decoration:underline !important;
+}
+
+/* Apply = filled button (right) */
+#left-panel #filters-panel .card-body > .d-flex:last-child .btn.btn-primary{
+  background:var(--primary) !important;
+  border-color:var(--primary) !important;
+  color:#fff !important;
+  font-weight:600 !important;
+  border-radius:8px !important;
+  padding:10px 16px !important;
+  min-width:140px;           
+}
+
+#left-panel #filters-panel .card-body > .d-flex:last-child .btn.btn-primary:hover{
+  background:var(--primary-hover) !important;
+  border-color:var(--primary-hover) !important;
+}
+
+/* Make Apply button compact*/
+#left-panel .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: auto !important;      /* prevent stretching */
+  min-width: 110px;            /* nice compact width */
+
+  padding: 8px 16px;           /* smaller padding */
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+#left-panel .btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+
+/* allow tooltips to escape the sidebar */
+#left-panel,
+#left-panel .glass-panel,
+#left-panel .accordion,
+#left-panel .accordion-item,
+#left-panel .accordion-body {
+  overflow: visible !important;
+}
+
+/* ensure help popups appear above the sidebar */
+.tooltip,
+.popover {
+  z-index: 9999 !important;
+}
+
+/* ===== Allow sidebar to shrink when sections collapse ===== */
+
+#left-panel,
+#left-panel .glass-panel,
+#left-panel .accordion,
+#left-panel .accordion-item {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* keep scrolling if content becomes tall */
+#left-panel {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+#left-panel .accordion-collapse:not(.show) {
+  display: none;
+}
+/* spacing between sidebar cards*/
+#left-panel .glass-panel {
+  margin-bottom: 18px;
+}
+
+/* remove extra inner container padding that causes the big blank area */
+#left-panel .glass-panel:last-child {
+  margin-bottom: 0;
+}
+
+/* ensure panels stack naturally */
+#left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+#left-panel .glass-panel {
+  padding: 16px;
+  border-radius: 14px;
+}
+
+/* prevent Filters card from stretching */
+#left-panel .card:first-child {
+  flex: 0 0 auto !important;
+  height: auto !important;
+}
+
+#left-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+/* Let sidebar content shrink to its real height */
+#lp-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: auto !important;
+}
+
+/* spacing between cards*/
+#lp-content .lp-section {
+  margin-bottom: 18px;
+}
+
+
+#ls-details {
+  flex-grow: 0 !important;
+}
+
+#ls-details {
+  height: auto !important;
+}
+
+.lp-content > * {
+  flex: 0 0 auto;
+}
+
+
+
+/* =========================
+   Removee big white slab
+   ========================= */
+#left-panel,
+#lp-content {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.app-main.floating-layout #left-panel {
+  background: rgba(255, 255, 255, 0.0) !important;
+}
+
+/* =========================
+    Polish each section
+   ========================= */
+#filters-panel,
+#download-panel,
+#ls-details {
+  background: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.12) !important;
+  padding: 16px !important;
+}
+
+/* spacing between the cards*/
+#lp-content .lp-section {
+  margin-bottom: 18px !important;
+}
+#lp-content .lp-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* =========================
+   Remove “box inside box” in Download panel
+   ========================= */
+#download-panel .card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#download-panel .card-body {
+  padding: 0 !important;
+}
+
+
+/* remove outer ghost panel around filters */
+#filters-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+
+
+/* checkbox labels*/
+#filters-panel label {
+  font-family: var(--font-stack);
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* section headings */
+#filters-panel h6 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+/* slider track */
+.noUi-connect {
+  background: var(--primary) !important;
+}
+
+/* slider handles */
+.noUi-handle {
+  border: 2px solid var(--primary) !important;
+  box-shadow: none !important;
+}
+
+/* slider rail */
+.noUi-target {
+  background: #e2e8f0;
+  border: none;
+}
+
+
+/* spacing under FILTERS title */
+#filters-panel h5,
+#filters-panel .card-title {
+  margin-bottom: 16px;
+}
+
+
+/* thinner slider track */
+.noUi-target {
+  height: 4px;
+}
+
+/* thinner connect bar */
+.noUi-connect {
+  height: 4px;
+}
+
+/* slider handles */
+.noUi-handle {
+  width: 14px;
+  height: 14px;
+  top: -5px;
+}
+
+/* remove outer sidebar shell */
+#left-panel {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* keep scrolling behavior */
+#left-panel {
+  overflow-y: auto;
+}
+
+
+/* ===============================
+   remove sidebar design
+   =============================== */
+
+.floating-layout #left-panel,
+.app-main.floating-layout #left-panel,
+#left-panel {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* spacing under FILTERS title */
+#filters-panel .card-title,
+#filters-panel h5 {
+  margin-bottom: 25px !important;
+}
+
+/* move sidebar closer to header */
+.app-main.floating-layout #left-panel {
+  top: 3px !important;
+}
+
+
+/* Hide sidebar scrollbar but keep scrolling */
+#left-panel {
+  scrollbar-width: none;      /* Firefox */
+}
+
+#left-panel::-webkit-scrollbar {
+  display: none;              /* Chrome / Safari */
+}
+
+
+
+/* =========================
+   SLIM LEFT PANEL CARDS
+   ========================= */
+
+/* reduce padding for all sidebar cards */
+#filters-panel,
+#download-panel,
+#ls-details {
+  padding: 12px !important;
+}
+
+/* slimmer accordion headers */
+#left-panel .accordion-button {
+  padding: px 12px !important;
+}
+
+/* slimmer accordion body */
+#left-panel .accordion-body {
+  padding: 10px 12px !important;
+}
+
+/* tighten checkbox spacing */
+#filters-panel .form-check {
+  margin-bottom: 6px !important;
+}
+
+/* manually slim the last two cards */
+#download-panel,
+#ls-details {
+  width: calc(100% - 18px);  
+  margin-left: 10px;
+}
+
+
+/* ===== Map mouse coordinates (center bottom) ===== */
+#coord-box{
+  position: fixed;
+
+  /* center horizontally */
+  left: 50%;
+  transform: translateX(-50%);
+
+  /* bottom position */
+  bottom: 14px;
+
+  z-index: 1200;
+  user-select: none;
+  pointer-events: none;
+
+ 
+  background: rgba(0,0,0,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+
+  padding: 6px 10px;
+
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+
+  color: rgba(255,255,255,0.85);
+
+  transition: all 0.18s ease;
+}
+
+/* hover*/
+#coord-box:hover{
+  background: rgba(0,0,0,0.38);
+  border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.95);
+}
+
+/* Move zoom controls down from header */
+.maplibregl-ctrl-top-right {
+  top: 30px !important;
+}
+
+/* Pull download panel closer to filters */
+#download-panel {
+  margin-top: -6px;
+}
+
+
+/* ===================== ABOUT MODAL ===================== */
+
+/* keep modal above sidebar */
+.modal {
+    z-index: 20000;
+}
+
+.modal-backdrop {
+    z-index: 19990;
+}
+
+/* control modal width*/
+.modal-dialog {
+    max-width: 720px;
+    margin-top: 10vh;
+}
+
+.modal-content {
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}

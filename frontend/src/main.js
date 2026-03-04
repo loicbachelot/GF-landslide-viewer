@@ -193,11 +193,14 @@ function initSplitter(map) {
 }
 
 // ---- boot ----
+// ---- boot ----
 const map = startMapLibre();
+
 map.once('load', () => {
     initFiltersPanel(map);
     initSplitter(map);
     initDetailsModal();
+
     initLegend({
         map,
         defaultMode: "mmi",
@@ -206,9 +209,21 @@ map.once('load', () => {
             pointsCircle: styleIds.pointsCircle
         }
     });
+
     if (typeof initSummaryPane === 'function') initSummaryPane(map);
+
     initDownloadPanel({
-        container: 'download-panel',
-        // map: map  <-- (optional, useful later for lasso)
+        container: 'download-panel'
     });
+
+    // ---- coordinate display ----
+    const coordBox = document.getElementById("coord-box");
+
+    if (coordBox) {
+        map.on("mousemove", (e) => {
+            const { lng, lat } = e.lngLat;
+            coordBox.textContent =
+                `${lat.toFixed(3)} , ${lng.toFixed(3)}`;
+        });
+    }
 });
