@@ -56,11 +56,11 @@ export class FiltersPanel {
         wrap.className = 'filters card shadow-sm';
         wrap.innerHTML = `
       <div class="card-body p-2">
-        <h5 class="card-title mb-2">Filters</h5>
+        <h5 class="card-title mb-2">Ground Failure Filters</h5>
         <div class="accordion accordion-flush" id="filtersAccordion"></div>
         <div class="d-flex gap-2 mt-2">
-          <button type="button" class="btn btn-primary flex-fill" id="applyFiltersBtn">Apply</button>
-          <button type="button" class="btn btn-outline-secondary flex-fill" id="resetFiltersBtn">Reset</button>
+          <button type="button" class="btn btn-primary flex-fill" id="applyFiltersBtn">Apply Filters</button>
+          <button type="button" class="btn btn-outline-secondary flex-fill" id="resetFiltersBtn">Reset Filters</button>
         </div>
       </div>
     `;
