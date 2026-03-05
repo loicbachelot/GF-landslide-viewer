@@ -6,7 +6,7 @@
             size: 4,
             summaryLabel: 'Material',
             help:
-                'Broad material class of the failed mass. This is a standardized label compiled from source inventories; definitions may vary slightly by dataset.',
+                "Material class describes the kind of material involved in the landslide (e.g., soil/earth, debris, rock). Definitions and mapping consistency can vary by original study.",
             options: [
                 { label: 'Debris' },     // mixed coarse material, often poorly sorted
                 { label: 'Earth' },      // soil/fine-grained regolith
@@ -23,7 +23,7 @@
             size: 4,
             summaryLabel: 'Movement',
             help:
-                'Primary movement style (how the material moved). Labels are harmonized across inventories and may reflect mapper interpretation rather than a single universal taxonomy.',
+                "Movement type describes how the landslide moved. (e.g., slides, flows, spreads, topples, falls, and complex). Categories reflect mapper interpretation from source materials and methods (e.g., lidar morphology mapping, aerial photos, field work) and can vary in detail by study.",
             options: [
                 { label: 'Flow' },
                 { label: 'Complex' },
@@ -45,7 +45,7 @@
             size: 3,
             summaryLabel: 'Confidence',
             help:
-                'Confidence in the mapped feature being a landslide (or ground-failure feature) as reported by the source inventory. This is not a probabilistic score and is not consistent across all datasets.',
+                "Confidence is the mapper’s confidence in identification (high, moderate, low). This is not a calibrated probability and may vary across different source datasets.",
             options: [{ label: 'High' }, { label: 'Medium' }, { label: 'Low' }]
         }
     };
@@ -57,7 +57,7 @@
             unit: '%g',
             tolerance: 0.1,
             help:
-                'Peak Ground Acceleration at the feature location, spatially interpolated from the ground-motion surface used by the viewer. Values represent shaking intensity, not landslide size.'
+                'Peak Ground Acceleration (PGA) is the maximum ground acceleration recorded at a site during earthquake shaking, expressed as a fraction of gravity (g). Values shown here are extracted from the USGS Cascadia M9 scenario ground-motion model and spatially interpolated to each feature location. Because this represents a single hypothetical rupture scenario, it should not be interpreted as observed shaking or as a definitive prediction of future ground motion.'
         },
         pgv: {
             elementId: 'pgvRange',
@@ -65,7 +65,7 @@
             unit: 'cm/s',
             tolerance: 0.1,
             help:
-                'Peak Ground Velocity at the feature location, interpolated from the same ground-motion surface. Often correlates with damage potential for some structures and may relate to slope response.'
+                'Peak Ground Velocity (PGV) is the maximum ground velocity during shaking, measured in centimeters per second. PGV often correlates with structural damage and slope deformation potential. Values in this viewer are interpolated from the USGS Cascadia M9 scenario ground-motion surface and reflect modeled, not observed, shaking from a single hypothetical event.'
         },
         psa03: {
             elementId: 'psa03Range',
@@ -73,7 +73,7 @@
             unit: '%g',
             tolerance: 0.1,
             help:
-                'Pseudo-spectral acceleration at 0.3 s period (5% damping), interpolated from the ground-motion surface. Useful as an intensity proxy for short-period response.'
+                'Pseudo-Spectral Acceleration (PSA) at 0.3 seconds (typically 5% damping) represents the maximum acceleration response of a single-degree-of-freedom oscillator with a 0.3 s natural period subjected to earthquake motion. It is commonly used as an intensity measure for short-period response. Values shown are derived from the USGS Cascadia M9 scenario model and represent one simulated rupture, not ground-truth observations.'
         },
         mmi: {
             elementId: 'mmiRange',
@@ -81,7 +81,7 @@
             unit: '',
             tolerance: 0.05,
             help:
-                'Modified Mercalli Intensity (MMI) at the feature location, derived from the shaking field. This is an intensity estimate and can be model-based, not necessarily observed.'
+                'Modified Mercalli Intensity (MMI) is a qualitative intensity scale describing the effects of shaking on people, structures, and the natural environment. In this viewer, MMI values are derived from the USGS Cascadia M9 scenario shaking model and are therefore model-based intensity estimates for a single hypothetical earthquake, not reported observations from a real event.'
         },
         rain: {
             elementId: 'rainRange',
@@ -89,7 +89,7 @@
             unit: 'mm',
             tolerance: 0.1,
             help:
-                'Mean annual precipitation at the feature location (mm), interpolated from the rainfall/precipitation raster used by the viewer. This is climatology, not storm rainfall at event time.'
+                'Mean annual precipitation (mm) at the feature location, derived from the 30-year (1990–2019) annual average DAYMET precipitation dataset for North America. Values are spatially interpolated from a gridded climatology product and represent long-term average climate conditions. This is not event-specific rainfall and should not be interpreted as rainfall at the time of landslide occurrence.'
         }
     };
 
