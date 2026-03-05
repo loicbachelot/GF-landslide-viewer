@@ -279,6 +279,158 @@ const styles = [{
     paint: {"circle-radius": 3, "circle-color": "orange"}
 },];
 
+
+
+
+class LayerSwitcherControl {
+    constructor(basemapCtl) {
+        this.basemapCtl = basemapCtl;
+    }
+
+    onAdd(map) {
+        this._map = map;
+
+        // Outer wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+        wrapper.style.position = 'relative';
+
+        // Toggle button (layers icon)
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = 'Layers';
+        btn.className = 'layer-switcher-btn';
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27z"/>
+            <path d="M12 11.27L4.64 6 12 .73 19.36 6z" opacity="0.3"/>
+        </svg>`;
+        wrapper.appendChild(btn);
+
+        // Panel (hidden by default)
+        const panel = document.createElement('div');
+        panel.className = 'layer-switcher-panel';
+        panel.style.display = 'none';
+
+        // --- Overlays section ---
+        const overlayTitle = document.createElement('div');
+        overlayTitle.textContent = 'Overlays';
+        overlayTitle.style.cssText = 'font-size:11px;font-weight:700;color:#0b4a53;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;';
+        panel.appendChild(overlayTitle);
+
+        // Faults checkbox
+        const faultRow = document.createElement('label');
+        faultRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13px;cursor:pointer;';
+        const faultCheck = document.createElement('input');
+        faultCheck.type = 'checkbox';
+        faultCheck.checked = true;
+        faultCheck.style.accentColor = '#0b4a53';
+        faultRow.appendChild(faultCheck);
+        faultRow.append('Faults');
+        panel.appendChild(faultRow);
+
+        // PGA checkbox
+        const pgaRow = document.createElement('label');
+        pgaRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:13px;cursor:pointer;';
+        const pgaCheck = document.createElement('input');
+        pgaCheck.type = 'checkbox';
+        pgaCheck.checked = true;
+        pgaCheck.style.accentColor = '#0b4a53';
+        pgaRow.appendChild(pgaCheck);
+        pgaRow.append('PGA (USGS M9)');
+        panel.appendChild(pgaRow);
+
+        // Divider
+        const divider = document.createElement('div');
+        divider.style.cssText = 'height:1px;background:#e2e8f0;margin-bottom:12px;';
+        panel.appendChild(divider);
+
+        // --- Basemap section ---
+        const bmTitle = document.createElement('div');
+        bmTitle.textContent = 'Basemap';
+        bmTitle.style.cssText = 'font-size:11px;font-weight:700;color:#0b4a53;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;';
+        panel.appendChild(bmTitle);
+
+        const basemaps = listBasemaps();
+        basemaps.forEach((bm, i) => {
+            const row = document.createElement('label');
+            row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13px;cursor:pointer;';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'basemap-select';
+            radio.value = bm.key;
+            radio.checked = i === 0;
+            radio.style.accentColor = '#0b4a53';
+            row.appendChild(radio);
+            row.append(bm.label);
+            panel.appendChild(row);
+
+            radio.addEventListener('change', () => {
+                this.basemapCtl.setBasemap(bm.key);
+            });
+        });
+
+        // Divider
+        const divider2 = document.createElement('div');
+        divider2.style.cssText = 'height:1px;background:#e2e8f0;margin:12px 0;';
+        panel.appendChild(divider2);
+
+        // Names checkbox
+        const namesRow = document.createElement('label');
+        namesRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;';
+        const namesCheck = document.createElement('input');
+        namesCheck.type = 'checkbox';
+        namesCheck.style.accentColor = '#0b4a53';
+        namesRow.appendChild(namesCheck);
+        namesRow.append('Names');
+        panel.appendChild(namesRow);
+
+        wrapper.appendChild(panel);
+
+        // Toggle panel on button click
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = panel.style.display !== 'none';
+            panel.style.display = isOpen ? 'none' : 'block';
+        });
+
+        // Close panel when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                panel.style.display = 'none';
+            }
+        });
+
+        // Overlay handlers
+        faultCheck.addEventListener('change', (e) => {
+            setFaultsVisible(this._map, e.target.checked);
+        });
+        pgaCheck.addEventListener('change', (e) => {
+            setPgaVisible(this._map, e.target.checked);
+        });
+        namesCheck.addEventListener('change', (e) => {
+            this.basemapCtl.setLabelsEnabled(e.target.checked);
+        });
+
+        // Sync basemap state
+        this._unsubscribe = this.basemapCtl.onChange((st) => {
+            const radios = panel.querySelectorAll('input[name="basemap-select"]');
+            radios.forEach(r => { r.checked = r.value === st.basemapKey; });
+            namesCheck.checked = st.labelsOn;
+            namesCheck.disabled = st.basemapHasLabels;
+            namesRow.style.opacity = st.basemapHasLabels ? '0.5' : '1';
+        });
+
+        this._container = wrapper;
+        return wrapper;
+    }
+
+    onRemove() {
+        if (this._unsubscribe) this._unsubscribe();
+        this._container.remove();
+        this._map = undefined;
+    }
+}
+
 /** Create and return the MapLibre map. No filter/apply logic here. */
 export function startMapLibre() {
     let div = document.getElementById('map');
@@ -312,70 +464,7 @@ export function startMapLibre() {
         // make sure the landslide data is on top of the other layers
         bringLandslidesToFront(map);
 
-        class OverlayToggleControl {
-            onAdd(map) {
-                this._map = map;
-                const container = document.createElement('div');
-                container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-                container.style.background = 'white';
-                container.style.padding = '6px 8px';
-                container.style.fontSize = '12px';
-                container.style.lineHeight = '16px';
-
-                // --- Faults ---
-                const faultBox = document.createElement('div');
-                faultBox.style.display = 'flex';
-                faultBox.style.alignItems = 'center';
-                const faultCheck = document.createElement('input');
-                faultCheck.type = 'checkbox';
-                faultCheck.id = 'toggleFaults';
-                faultCheck.checked = true;
-                faultCheck.style.marginRight = '4px';
-                const faultLabel = document.createElement('label');
-                faultLabel.textContent = 'Faults';
-                faultLabel.htmlFor = 'toggleFaults';
-                faultBox.appendChild(faultCheck);
-                faultBox.appendChild(faultLabel);
-
-                // --- PGA ---
-                const pgaBox = document.createElement('div');
-                pgaBox.style.display = 'flex';
-                pgaBox.style.alignItems = 'center';
-                const pgaCheck = document.createElement('input');
-                pgaCheck.type = 'checkbox';
-                pgaCheck.id = 'togglePga';
-                pgaCheck.checked = true;
-                pgaCheck.style.marginRight = '4px';
-                const pgaLabel = document.createElement('label');
-                pgaLabel.textContent = 'PGA (USGS M9)';
-                pgaLabel.htmlFor = 'togglePga';
-                pgaBox.appendChild(pgaCheck);
-                pgaBox.appendChild(pgaLabel);
-
-                container.appendChild(faultBox);
-                container.appendChild(pgaBox);
-
-                // Handlers
-                faultCheck.addEventListener('change', (e) => {
-                    setFaultsVisible(this._map, e.target.checked);
-                });
-                pgaCheck.addEventListener('change', (e) => {
-                    setPgaVisible(this._map, e.target.checked);
-                });
-
-                this._container = container;
-                return container;
-            }
-
-            onRemove() {
-                this._container.remove();
-                this._map = undefined;
-            }
-        }
-
-        map.addControl(new OverlayToggleControl(), 'top-left');
-
-        map.addControl(new BasemapControl(basemapCtl), 'top-left');
+        map.addControl(new LayerSwitcherControl(basemapCtl), 'top-right');
 
     });
 

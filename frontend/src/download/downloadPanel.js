@@ -122,7 +122,7 @@ export function initDownloadPanel({ container }) {
 
     wrap.innerHTML = `
       <div class="card-body p-2">
-        <h5 class="card-title mb-2">Download landslides</h5>
+        <h5 class="card-title mb-2">Export Data</h5>
         <p class="card-text small mb-2">Spatial selection tool</p>
         <div id="spatial-controls" class="spatial-controls">
             <button id="spatial-draw-btn"   type="button" class="btn btn-primary btn-sm">Draw selection</button>
