@@ -59,8 +59,8 @@ export class FiltersPanel {
         <h5 class="card-title mb-2">Ground Failure Filters</h5>
         <div class="accordion accordion-flush" id="filtersAccordion"></div>
         <div class="d-flex gap-2 mt-2">
-          <button type="button" class="btn btn-primary flex-fill" id="applyFiltersBtn">Apply Filters</button>
           <button type="button" class="btn btn-outline-secondary flex-fill" id="resetFiltersBtn">Reset Filters</button>
+          <button type="button" class="btn btn-primary flex-fill" id="applyFiltersBtn">Apply Filters</button>
         </div>
       </div>
     `;
@@ -156,7 +156,7 @@ export class FiltersPanel {
             group.dataset.key = key;
 
             const titleEl = document.createElement('div');
-            titleEl.className = 'form-label fw-semibold mb-1';
+            titleEl.className = 'form-label filter-sublabel mb-1';
             titleEl.innerHTML = this._makeLabelHTML(label, help); // use destructured help
             group.appendChild(titleEl);
 
@@ -170,7 +170,7 @@ export class FiltersPanel {
                 col.innerHTML = `
       <div class="form-check">
         <input class="form-check-input" type="checkbox" value="${opt.label ?? opt}" id="${id}">
-        <label class="form-check-label" style="font-size: 14px" for="${id}">${opt.label ?? opt}</label>
+        <label class="form-check-label" for="${id}">${opt.label ?? opt}</label>
       </div>
     `;
                 grid.appendChild(col);
@@ -194,7 +194,7 @@ export class FiltersPanel {
             group.className = 'mb-0';
             group.dataset.key = key;
             group.innerHTML = `
-<div class="form-label fw-semibold" style="font-size: 14px">${this._makeLabelHTML(label, cfg.help)}</div>
+<div class="form-label filter-numeric-label">${this._makeLabelHTML(label, cfg.help)}</div>
                <div id="ns_${key}" class="mb-2 slider-round"></div>
         <div class="row gx-2">
           <div class="col">
