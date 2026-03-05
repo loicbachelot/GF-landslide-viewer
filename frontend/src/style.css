@@ -977,7 +977,7 @@ body.is-resizing {
   left: -9px !important;
   bottom: 16px !important;
 
-  width: min(320px, calc(100vw - 32px)) !important;
+  width: min(340px, calc(100vw - 32px)) !important;
   max-width: min(350px, calc(100vw - 32px)) !important;
   min-width: 280px !important;
 
