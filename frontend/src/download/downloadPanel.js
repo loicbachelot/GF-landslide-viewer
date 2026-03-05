@@ -135,7 +135,7 @@ export function initDownloadPanel({ container }) {
         <button type="button"
                 class="btn btn-primary"
                 id="downloadBtn">
-          Download
+          <span class="export-icon">📥</span> GeoJSON
         </button>
         <div class="small mt-1" id="downloadStatus"></div>
       </div>
