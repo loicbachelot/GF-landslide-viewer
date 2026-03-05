@@ -440,7 +440,7 @@ export function startMapLibre() {
         document.body.appendChild(div);
     }
 
-    const basemapCtl = createBasemapController({defaultBasemap: "osm"});
+    const basemapCtl = createBasemapController({defaultBasemap: "esri_imagery"});
 
 
     const map = new maplibregl.Map({
