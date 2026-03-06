@@ -1,6 +1,6 @@
-# Cascadia Landslide Viewer
+# Cascadia Ground Failure Viewer
 
-A cloud-native geospatial application for exploring landslide inventories across the Cascadia region.  
+A cloud-native geospatial application for exploring ground failure inventories across the Cascadia region.  
 Features interactive visualization, intelligent filtering, vector-tile-based rendering, and a fully serverless export pipeline capable of efficiently delivering large filtered datasets.
 
 ---
