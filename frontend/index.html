@@ -196,60 +196,154 @@
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
+                <h4 class="modal-title" id="aboutLabel">About this viewer</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
-                <h2 style="color:#0e7490;font-size:22px;font-weight:700;margin-bottom:14px;">CRESCENT Ground-Failure Viewer</h2>
-
-                <p style="color:#334155;font-size:14.5px;line-height:1.6;">
-                    This interactive map displays integrated landslide inventories from across the
-                    Cascadia region (Washington, Oregon, California, and British Columbia). The viewer
-                    harmonizes datasets from multiple geological surveys and research sources into a
-                    consistent format for filtering, visualization, and download. These external datasets
-                    are periodically updated by their respective providers. The versions used in this
-                    viewer may not reflect the most recent releases. For the latest authoritative
-                    versions, please consult the original data sources linked below.
+                <p class="lead mb-3">
+                    This interactive map displays integrated landslide inventories from across the Cascadia
+                    region (Washington, Oregon, California, and British Columbia). The viewer harmonizes
+                    datasets from multiple geological surveys and research sources into a consistent format
+                    for filtering, visualization, and download.
                 </p>
 
-                <div style="margin:20px 0 18px;text-align:center;">
-                    <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/"
-                       target="_blank" rel="noopener noreferrer"
-                       style="display:inline-block;background:linear-gradient(135deg,#0e7490 0%,#0b4a53 100%);color:white;padding:13px 28px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;box-shadow:0 6px 18px rgba(14,116,144,0.35);transition:all 0.25s ease;">
-                        View Documentation
-                    </a>
-                </div>
+                <hr>
 
-                <h3 style="margin-top:20px;margin-bottom:8px;font-size:16px;color:#0b4a53;">Project Contacts</h3>
-                <div style="background:rgba(255,255,255,0.55);border-left:3px solid #0e7490;border-radius:14px;padding:18px 20px;margin-top:8px;font-size:13.5px;line-height:1.45;">
-                    <div style="margin-bottom:14px;">
-                        <strong style="font-size:14px;font-weight:600;color:#0b4a53;display:block;margin-bottom:4px;">Amanda M. Thomas</strong>
-                        Department of Earth and Planetary Sciences<br/>
-                        University of California, Davis<br/>
-                        <a href="mailto:amthom@ucdavis.edu" style="font-size:13px;color:#0e7490;text-decoration:none;">amthom@ucdavis.edu</a>
-                    </div>
+                <!-- Dataset sections -->
+                <section class="mb-4">
+                    <h5>Washington – DNR Landslide Inventory</h5>
+                    <p class="small text-muted mb-1">
+                        Polygon-based mapped landslides derived from field mapping, LiDAR interpretation,
+                        and historical records, provided by the Washington State Department of Natural Resources.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Source dataset: <a href="https://dnr.wa.gov/washington-geological-survey/geologic-hazards-and-environment/landslides" target="_blank">WA DNR Landslide Inventory</a></li>
+                        <li>Web viewer: <a href="https://geologyportal.dnr.wa.gov/2d-view#wigm?-14643731,-12295585,5466999,6581145?Landslides,WGS-Protocol_Landslide_Mapping,Recent_Landslides,Fans,Rock_Fall_Scarps,Rock_Fall_Deposits,Scarps,Scarps_and_Flanks,Landslide_Deposit,SLIP_Landslides,SLIP_Fans,Study_Areas" target="_blank">Washington Geologic Information Portal</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/washington_preprocessing.html" target="_blank">DNR Landslide notebook</a></li>
+                    </ul>
+                </section>
 
-                    <div style="margin-bottom:14px;">
-                        <strong style="font-size:14px;font-weight:600;color:#0b4a53;display:block;margin-bottom:4px;">William Marfo</strong>
-                        Cascadia Region Earthquake Science Center<br/>
-                        Department of Earth and Planetary Sciences<br/>
-                        University of California, Davis<br/>
-                        <a href="mailto:wmarfo@ucdavis.edu" style="font-size:13px;color:#0e7490;text-decoration:none;">wmarfo@ucdavis.edu</a>
-                    </div>
+                <section class="mb-4">
+                    <h5>Oregon – DOGAMI Landslide Data</h5>
+                    <p class="small text-muted mb-1">
+                        Statewide landslide mapping from the Oregon Department of Geology and Mineral Industries,
+                        combining detailed studies and reconnaissance inventories.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Source dataset: <a href="https://www.oregon.gov/dogami/slido/Pages/data.aspx" target="_blank">OR DOGAMI Landslide Inventory</a></li>
+                        <li>Web viewer: <a href="https://gis.dogami.oregon.gov/maps/slido/" target="_blank">SLIDO: Statewide Landslide Information Layer for Oregon</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/oregon_preprocessing.html" target="_blank">DOGAMI Landslide notebook</a></li>
+                    </ul>
+                </section>
 
-                    <div>
-                        <strong style="font-size:14px;font-weight:600;color:#0b4a53;display:block;margin-bottom:4px;">Loïc Bachelot</strong>
-                        Cascadia Region Earthquake Science Center<br/>
-                        Department of Earth Sciences<br/>
-                        University of Oregon<br/>
-                        <a href="mailto:lbachelo@uoregon.edu" style="font-size:13px;color:#0e7490;text-decoration:none;">lbachelo@uoregon.edu</a>
-                    </div>
-                </div>
+                <section class="mb-4">
+                    <h5>California – Geological Survey Inventories</h5>
+                    <p class="small text-muted mb-1">
+                        Landslide inventories compiled by the California Geological Survey from multiple
+                        mapping campaigns, including historic and recent events.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Source dataset: <a href="https://www.conservation.ca.gov/cgs/landslides" target="_blank">CGS Landslide Data</a></li>
+                        <li>Web viewer: <a href="https://maps.conservation.ca.gov/cgs/lsi/" target="_blank">Landslide inventory BETA Map</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/california_preprocessing.html" target="_blank">CGS Landslide notebook</a></li>
+                    </ul>
+                </section>
 
-                <p style="font-size:12.5px;color:#64748b;font-style:italic;margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;">
-                    Supported by the National Science Foundation through the
-                    Cascadia Region Earthquake Science Center (CRESCENT).
+                <section class="mb-4">
+                    <h5>British Columbia / Canada – NRCan and Provincial Data</h5>
+                    <p class="small text-muted mb-1">
+                        Preliminary landslide database includes 11,135-point features. The landslides have mostly been identified using Google Earth and publicly available lidar. Previously published landslide databases have also been incorporated and referenced.
+                    </p>
+                    <ul class="small mb-0">
+                        <li><a href="https://data.niaid.nih.gov/resources?id=zenodo_7089351" target="_blank">Preliminary Canadian Landslide Database</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/canada_preprocessing.html" target="_blank">Canada-BC Landslide notebook</a></li>
+                    </ul>
+                </section>
+
+                <hr>
+
+                <p class="lead mb-2">Data processing and submission</p>
+                <p class="small text-muted mb-1">
+                    The methods used to ingest, clean, standardize, and serve these inventories are
+                    documented in the project’s Jupyter-Book. That documentation also describes
+                    how contributors can prepare and submit new landslide inventories for inclusion
+                    in the viewer.
                 </p>
+                <p class="lead mb-2">Post-processing and external hazard products</p>
+                <p class="small text-muted mb-1">
+                    In addition to harmonizing landslide inventories, the viewer integrates
+                    externally developed hazard products. These datasets are spatially
+                    interpolated onto landslide features to enable consistent, region-wide
+                    filtering and comparison.
+                </p>
+
+                <ul class="small mb-0">
+                    <li>
+                        <strong>USGS M9 Cascadia ground motion scenarios:</strong>
+                        ground motion metrics (e.g., PGA, PGV, PSA) are derived from
+                        physics-based M9 earthquake simulations and interpolated to each
+                        landslide location.
+                        <a href="https://earthquake.usgs.gov/scenarios/catalog/cszm9/" target="_blank">
+                            M9 Cascadia Earthquake Scenario
+                        </a>/
+                        <a href="https://earthquake.usgs.gov/scenarios/eventpage/cszm9ensemble_se/executive" target="_blank">
+                            Event Page
+                        </a>.
+                    </li>
+                    <li>
+                        <strong>Rainfall products:</strong>
+                        30 years average annual rainfall data from: 30-Year (1990-2019) Annual Average of DAYMET Precipitation and Temperature for North America.
+                        <a href="https://doi.org/10.5066/P9E0JZ82" target="_blank">
+                            Documentation of rainfall data
+                        </a>.
+                    </li>
+                </ul>
+
+                <hr>
+
+                <ul class="small mb-0">
+                    <li><a href="https://cascadiaquakes.github.io/cascadia-landslide-book/" target="_blank">Cascadia landslide processing & documentation (Jupyter-Book)</a></li>
+                    <li><a href="https://cascadiaquakes.github.io/cascadia-landslide-book/submission_instructions.html" target="_blank">Dataset Submission Instructions</a></li>
+                    <li><a href="https://github.com/cascadiaquakes/cascadia-landslide-book" target="_blank">GitHub Repository – cascadia-landslide-book</a></li>
+                </ul>
+
+                <hr>
+
+                <section class="mb-3">
+                    <h5>Project contacts</h5>
+                    <p class="small text-muted mb-2">
+                        The CRESCENT Ground Failure Repository is developed and maintained by the
+                        CRESCENT cyberinfrastructure team in collaboration with state agencies,
+                        researchers, and the broader Cascadia hazards community. Individual datasets
+                        remain the intellectual property of their original authors and organizations.
+                    </p>
+
+                    <ul class="small mb-0">
+                        <li>
+                            <strong>Amanda M. Thomas</strong><br>
+                            Department of Earth and Planetary Sciences, University of California, Davis
+                        </li>
+                        <li class="mt-2">
+                            <strong>William Marfo</strong><br>
+                            Cascadia Region Earthquake Science Center<br>
+                            Department of Earth and Planetary Sciences, University of California, Davis
+                        </li>
+                        <li class="mt-2">
+                            <strong>Lo├»c Bachelot</strong><br>
+                            Cascadia Region Earthquake Science Center<br>
+                            Department of Earth Sciences, University of Oregon
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h5>Acknowledgments</h5>
+                    <p class="small text-muted mb-0">
+                        This project is supported by the National Science Foundation through the
+                        Cascadia Region Earthquake Science Center (CRESCENT).
+                    </p>
+                </section>
             </div>
 
             <div class="modal-footer">
@@ -260,6 +354,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- detail modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
