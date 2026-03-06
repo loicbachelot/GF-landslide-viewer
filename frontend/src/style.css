@@ -1365,7 +1365,7 @@ body.is-resizing {
   margin-bottom: 18px;
 }
 
-/* remove extra inner container padding that causes the big blank area */
+/* remove extra inner container  */
 #left-panel .glass-panel:last-child {
   margin-bottom: 0;
 }
@@ -1457,7 +1457,7 @@ body.is-resizing {
 }
 
 /* =========================
-   Remove “box inside box” in Download panel
+   Remove box in Download panel
    ========================= */
 #download-panel .card {
   background: transparent !important;
@@ -1614,7 +1614,6 @@ body.is-resizing {
   margin-bottom: 6px !important;
 }
 
-/* manually slim the last two cards */
 #download-panel {
   width: calc(100% - 18px);  
   margin-left: 4px;
@@ -2058,7 +2057,7 @@ body.is-resizing {
     transform: scale(0.98) !important;
 }
 
-/* Apply Filters button - slimmer and rounder */
+/* Apply Filters button */
 #applyFiltersBtn {
     background: #0b4a53 !important;
     border-color: #0b4a53 !important;
@@ -2150,3 +2149,7 @@ body.is-resizing {
     margin-left: 11px !important;
     margin-right: 8px !important;
 }
+
+
+
+
