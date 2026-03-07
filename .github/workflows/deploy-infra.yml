@@ -44,6 +44,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: gha-deploy-infra
 
+      - name: Bundle Lambda dependencies
+        run: |
+          pip install -r download_api/requirements.txt -t download_api/
+          pip install -r gf_details_api/requirements.txt -t gf_details_api/    
+
       - name: CDK diff
         working-directory: aws_cdk
         run: npx cdk@2 diff LandslideStack

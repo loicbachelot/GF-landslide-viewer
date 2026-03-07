@@ -1,0 +1,398 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    <title>Cascadia Ground-Failure Viewer</title> <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/nouislider@15.8.1/dist/nouislider.min.css" rel="stylesheet"/>
+    <link rel="icon" type="image/png" href="/src/resources/favicon.ico" />
+</head>
+<body>
+
+<!-- Top banner -->
+<header class="app-header">
+    <div class="header-left">
+        <a href="https://cascadiaquakes.org/" class="navbar-brand">
+            <img class="crescent-logo" src="src/resources/Crescent_Logo.png" alt="Cascadia Quakes Logo" />
+        </a>
+
+        <a href="https://www.nsf.gov" class="nav-link">
+            <img class="nsf-logo" src="src/resources/USNSF_Logo.png" alt="NSF Logo" />
+        </a>
+    </div>
+
+    <div class="header-center">Cascadia Ground-Failure Viewer</div>
+
+    <div class="header-right">
+        
+        <button class="btn-glass"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#aboutModal">
+            About
+        </button>
+    </div>
+</header>
+
+<!-- Split layout: filters | gutter | map -->
+<main class="app-main floating-layout">
+    <!-- LEFT PANEL (filters + summary + details) -->
+    <aside id="left-panel" class="lp" aria-label="Left panel">
+        <div id="lp-content" class="lp-content">
+            <!-- Filters -->
+            <section class="lp-section" aria-labelledby="filters-title">
+                <div id="filters-panel"></div>
+            </section>
+
+            <!-- Download -->
+            <section class="lp-section" aria-labelledby="download-title">
+                <div id="download-panel">
+                </div>
+            </section>
+
+            <!-- Selection details -->
+            <section id="ls-details" class="lp-section card card-body ls-details" aria-labelledby="selection-title">
+                <h5 id="selection-title" class="card-title">Selected landslide</h5>
+
+                <div id="selected-empty" class="text-muted">
+                    Click a landslide on the map to see details here.
+                </div>
+
+                <table id="selected-table" class="table table-sm table-borderless d-none">
+                    <tbody id="selected-tbody"></tbody>
+                </table>
+            </section>
+        </div>
+    </aside>
+
+    <!-- DRAG GUTTER -->
+    <div id="split-gutter" role="separator" aria-label="Resize panels" aria-orientation="vertical" tabindex="0"></div>
+
+    <!-- MAP -->
+    <section id="map-wrapper" class="position-relative">
+        <div id="map"></div>
+
+    <!-- Coordinates display -->
+    <div id="coord-box" class="coord-box">
+        ---, ---
+    </div>
+
+        <!-- Bootstrap loading overlay -->
+        <div id="map-loading"
+             class="position-absolute top-0 start-0 w-100 h-100 d-none bg-white bg-opacity-50"
+             style="z-index:10;">
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="spinner-border text-success" role="status" style="width:3rem;height:3rem;">
+                    <span class="visually-hidden">LoadingΓÇª</span>
+                </div>
+            </div>
+        </div>
+        <!-- Legend footer (collapsed/expanded) -->
+        <div class="footer-container" id="ls-legend">
+            <div class="panel legend-panel">
+                <div class="legend-header-row">
+                    <div class="legend-title" id="ls-legend-title">Material</div>
+
+                    <button class="legend-settings-btn" id="ls-legend-settings-btn" title="Legend settings">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body swaps between DISCRETE and CONTINUOUS -->
+                <div id="ls-legend-body">
+                    <!-- JS populates -->
+                </div>
+            </div>
+
+            <!-- Settings flyout -->
+            <div class="depth-settings-panel" id="ls-legend-settings-panel">
+                <div class="settings-header">Legend Settings</div>
+                <div class="settings-content">
+                    <div class="range-input-group" style="margin-bottom: 10px;">
+                        <label for="ls-legend-mode" style="font-size: 12px; opacity: 0.85;">Color by</label>
+                        <select id="ls-legend-mode" class="ls-legend-select">
+
+                        </select>
+                    </div>
+                    <div class="range-input-group" style="margin-top: 6px;">
+                        <label for="ls-legend-opacity" style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">
+                            Opacity
+                        </label>
+
+                        <input id="ls-legend-opacity" type="range" min="0" max="100" value="40" step="1" />
+
+                        <div style="display:flex; justify-content: space-between; font-size: 10px; color:#64748b; font-weight:600; line-height:1;">
+                            <span>0%</span>
+                            <span id="ls-legend-opacity-val">40%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                    <label class="settings-option">
+                        <input type="checkbox" id="ls-legend-compact" checked>
+                        <span>Compact legend</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating toggle button -->
+        <button class="btn-legend-toggle" id="ls-toggle-legend" type="button" title="legend" aria-label="legend">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="4" y="4" width="7" height="7" rx="1.6"></rect>
+                <rect x="13" y="4" width="7" height="7" rx="1.6"></rect>
+                <rect x="4" y="13" width="7" height="7" rx="1.6"></rect>
+                <rect x="13" y="13" width="7" height="7" rx="1.6"></rect>
+            </svg>
+        </button>
+    </section>
+</main>
+
+
+<!-- Download confirmation modal -->
+<div class="modal fade" id="downloadConfirmModal" tabindex="-1" aria-labelledby="downloadConfirmLabel">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="downloadConfirmLabel">Confirm download</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-2 small">
+                    You are about to download landslides matching the current filters.
+                </p>
+
+                <p class="mb-1">
+                    <strong>Total landslides:</strong>
+                    <span id="downloadConfirmCount">ΓÇª</span>
+                </p>
+
+                <div class="border rounded p-2 bg-light mb-2">
+                    <div class="small fw-semibold mb-1">Filters applied:</div>
+                    <div id="downloadConfirmFilters" class="small text-muted">
+                        <!-- filled dynamically -->
+                    </div>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="downloadCompressModal">
+                    <label class="form-check-label small" for="downloadCompressModal">
+                        Compress as .zip
+                    </label>
+                </div>
+
+                <div class="small mt-1" id="downloadConfirmNote">
+                    Processing request, counting featuresΓÇª
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="downloadConfirmBtn">
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About modal -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutLabel">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="aboutLabel">About this viewer</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="lead mb-3">
+                    This interactive map displays integrated landslide inventories from across the Cascadia
+                    region (Washington, Oregon, California, and British Columbia). The viewer harmonizes
+                    datasets from multiple geological surveys and research sources into a consistent format
+                    for filtering, visualization, and download.
+                </p>
+
+                <hr>
+
+                <!-- Dataset sections -->
+                <section class="mb-4">
+                    <h5>Washington ΓÇô DNR Landslide Inventory</h5>
+                    <p class="small text-muted mb-1">
+                        Polygon-based mapped landslides derived from field mapping, LiDAR interpretation,
+                        and historical records, provided by the Washington State Department of Natural Resources.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Source dataset: <a href="https://dnr.wa.gov/washington-geological-survey/geologic-hazards-and-environment/landslides" target="_blank">WA DNR Landslide Inventory</a></li>
+                        <li>Web viewer: <a href="https://geologyportal.dnr.wa.gov/2d-view#wigm?-14643731,-12295585,5466999,6581145?Landslides,WGS-Protocol_Landslide_Mapping,Recent_Landslides,Fans,Rock_Fall_Scarps,Rock_Fall_Deposits,Scarps,Scarps_and_Flanks,Landslide_Deposit,SLIP_Landslides,SLIP_Fans,Study_Areas" target="_blank">Washington Geologic Information Portal</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/washington_preprocessing.html" target="_blank">DNR Landslide notebook</a></li>
+                    </ul>
+                </section>
+
+                <section class="mb-4">
+                    <h5>Oregon ΓÇô DOGAMI Landslide Data</h5>
+                    <p class="small text-muted mb-1">
+                        Statewide landslide mapping from the Oregon Department of Geology and Mineral Industries,
+                        combining detailed studies and reconnaissance inventories.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Source dataset: <a href="https://www.oregon.gov/dogami/slido/Pages/data.aspx" target="_blank">OR DOGAMI Landslide Inventory</a></li>
+                        <li>Web viewer: <a href="https://gis.dogami.oregon.gov/maps/slido/" target="_blank">SLIDO: Statewide Landslide Information Layer for Oregon</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/oregon_preprocessing.html" target="_blank">DOGAMI Landslide notebook</a></li>
+                    </ul>
+                </section>
+
+                <section class="mb-4">
+                    <h5>California ΓÇô Geological Survey Inventories</h5>
+                    <p class="small text-muted mb-1">
+                        Landslide inventories compiled by the California Geological Survey from multiple
+                        mapping campaigns, including historic and recent events.
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Source dataset: <a href="https://www.conservation.ca.gov/cgs/landslides" target="_blank">CGS Landslide Data</a></li>
+                        <li>Web viewer: <a href="https://maps.conservation.ca.gov/cgs/lsi/" target="_blank">Landslide inventory BETA Map</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/california_preprocessing.html" target="_blank">CGS Landslide notebook</a></li>
+                    </ul>
+                </section>
+
+                <section class="mb-4">
+                    <h5>British Columbia / Canada ΓÇô NRCan and Provincial Data</h5>
+                    <p class="small text-muted mb-1">
+                        Preliminary landslide database includes 11,135-point features. The landslides have mostly been identified using Google Earth and publicly available lidar. Previously published landslide databases have also been incorporated and referenced.
+                    </p>
+                    <ul class="small mb-0">
+                        <li><a href="https://data.niaid.nih.gov/resources?id=zenodo_7089351" target="_blank">Preliminary Canadian Landslide Database</a></li>
+                        <li>Processing: <a href="https://cascadiaquakes.github.io/cascadia-landslide-book/processing_notebooks/PreProcessing/canada_preprocessing.html" target="_blank">Canada-BC Landslide notebook</a></li>
+                    </ul>
+                </section>
+
+                <hr>
+
+                <p class="lead mb-2">Data processing and submission</p>
+                <p class="small text-muted mb-1">
+                    The methods used to ingest, clean, standardize, and serve these inventories are
+                    documented in the projectΓÇÖs Jupyter-Book. That documentation also describes
+                    how contributors can prepare and submit new landslide inventories for inclusion
+                    in the viewer.
+                </p>
+                <p class="lead mb-2">Post-processing and external hazard products</p>
+                <p class="small text-muted mb-1">
+                    In addition to harmonizing landslide inventories, the viewer integrates
+                    externally developed hazard products. These datasets are spatially
+                    interpolated onto landslide features to enable consistent, region-wide
+                    filtering and comparison.
+                </p>
+
+                <ul class="small mb-0">
+                    <li>
+                        <strong>USGS M9 Cascadia ground motion scenarios:</strong>
+                        ground motion metrics (e.g., PGA, PGV, PSA) are derived from
+                        physics-based M9 earthquake simulations and interpolated to each
+                        landslide location.
+                        <a href="https://earthquake.usgs.gov/scenarios/catalog/cszm9/" target="_blank">
+                            M9 Cascadia Earthquake Scenario
+                        </a>/
+                        <a href="https://earthquake.usgs.gov/scenarios/eventpage/cszm9ensemble_se/executive" target="_blank">
+                            Event Page
+                        </a>.
+                    </li>
+                    <li>
+                        <strong>Rainfall products:</strong>
+                        30 years average annual rainfall data from: 30-Year (1990-2019) Annual Average of DAYMET Precipitation and Temperature for North America.
+                        <a href="https://doi.org/10.5066/P9E0JZ82" target="_blank">
+                            Documentation of rainfall data
+                        </a>.
+                    </li>
+                </ul>
+
+                <hr>
+
+                <ul class="small mb-0">
+                    <li><a href="https://cascadiaquakes.github.io/cascadia-landslide-book/" target="_blank">Cascadia landslide processing & documentation (Jupyter-Book)</a></li>
+                    <li><a href="https://cascadiaquakes.github.io/cascadia-landslide-book/submission_instructions.html" target="_blank">Dataset Submission Instructions</a></li>
+                    <li><a href="https://github.com/cascadiaquakes/cascadia-landslide-book" target="_blank">GitHub Repository ΓÇô cascadia-landslide-book</a></li>
+                </ul>
+
+                <hr>
+
+                <section class="mb-3">
+                    <h5>Project contacts</h5>
+                    <p class="small text-muted mb-2">
+                        The CRESCENT Ground Failure Repository is developed and maintained by the
+                        CRESCENT cyberinfrastructure team in collaboration with state agencies,
+                        researchers, and the broader Cascadia hazards community. Individual datasets
+                        remain the intellectual property of their original authors and organizations.
+                    </p>
+
+                    <ul class="small mb-0">
+                        <li>
+                            <strong>Amanda M. Thomas</strong><br>
+                            Department of Earth and Planetary Sciences, University of California, Davis
+                        </li>
+                        <li class="mt-2">
+                            <strong>William Marfo</strong><br>
+                            Cascadia Region Earthquake Science Center<br>
+                            Department of Earth and Planetary Sciences, University of California, Davis
+                        </li>
+                        <li class="mt-2">
+                            <strong>Lo├»c Bachelot</strong><br>
+                            Cascadia Region Earthquake Science Center<br>
+                            Department of Earth Sciences, University of Oregon
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h5>Acknowledgments</h5>
+                    <p class="small text-muted mb-0">
+                        This project is supported by the National Science Foundation through the
+                        Cascadia Region Earthquake Science Center (CRESCENT).
+                    </p>
+                </section>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- detail modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalTitle">Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="detailsStatus" class="small text-muted mb-2"></div>
+
+                <div id="detailsError" class="alert alert-danger d-none"></div>
+
+                <table class="table table-sm">
+                    <tbody id="detailsTbody"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.8.1/dist/nouislider.min.js"></script>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
